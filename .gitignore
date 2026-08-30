@@ -47,5 +47,8 @@ out/
 gta-vi-artwork*.png
 gta-vi-artwork*.json
 
+# Exemplos locais (não versionar)
+Examples/
+
 # Arquivos grandes gerados
 assets-data.tmp.js
