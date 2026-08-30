@@ -1,0 +1,51 @@
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Editores / IDE
+.vscode/
+.idea/
+*.code-workspace
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Node / ferramentas locais (caso use npx serve, vite, etc)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnp/
+.pnp.js
+
+# Logs e temporários
+logs/
+*.log
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+dist/
+build/
+out/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Exports locais do designer
+*.png.export
+gta-vi-artwork*.png
+gta-vi-artwork*.json
+
+# Arquivos grandes gerados
+assets-data.tmp.js

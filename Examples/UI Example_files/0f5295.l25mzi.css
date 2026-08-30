@@ -1,0 +1,5 @@
+:root{--_1qwkqln0:0;--_1qwkqln1:var(--promo-banner-height)}
+:root:has([data-banner=true]){--_1qwkqln0:1}
+@media (min-width:0) and (max-width:767.98px) and (orientation:portrait){:root{--promo-banner-height:calc(52px * var(--_1qwkqln0))}}
+@media (min-width:0) and (max-width:767.98px) and (orientation:landscape){:root{--promo-banner-height:calc(32px * var(--_1qwkqln0))}}
+@media (min-width:768px){:root{--promo-banner-height:calc(60px * var(--_1qwkqln0))}}

@@ -1,0 +1,24 @@
+._1sdb9px2{--_1sdb9px0:cubic-bezier(.4, 0, .2, 1);--_1sdb9px1:.3s;width:100%;max-width:var(--jhqn1x1d);height:var(--jhqn1xl);border-radius:var(--foundry-global-border-radius-pill-8c8d51e6);padding:0 var(--jhqn1xb) 0 var(--jhqn1xe);backdrop-filter:blur(6.25px);cursor:pointer;transition-property:background-color,outline-color;transition-duration:var(--_1sdb9px1);transition-timing-function:var(--_1sdb9px0);outline-offset:4px;box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;z-index:var(--_19z1c6d5);border:none;outline:4px solid #0000;justify-content:space-between;align-items:center;display:flex}
+._1sdb9px2:focus-visible{outline-color:var(--_1nfc5st73);z-index:calc(var(--_19z1c6d5) + 1)}
+._1sdb9px2[disabled]{cursor:not-allowed}
+._1sdb9px3{background-color:var(--_1nfc5st73);color:var(--_1nfc5st7m);justify-content:center}
+._1sdb9px3[data-pressed=true]{background-color:var(--_1nfc5st7w)}
+._1sdb9px3:not([data-pressed=true]):not([disabled]):hover{background-color:var(--_1nfc5st7v)}
+._1sdb9px3:focus-visible{background-color:var(--_1nfc5st73)}
+._1sdb9px4{background-color:var(--_1nfc5st1r);color:var(--_1nfc5st13)}
+._1sdb9px4:disabled{opacity:.3}
+._1sdb9px4[data-pressed=true]{background-color:var(--_1nfc5st1n)}
+._1sdb9px4:not([data-pressed=true]):not([disabled]):hover{background-color:var(--_1nfc5st1p)}
+._1sdb9px4:focus-visible{background-color:var(--_1nfc5st1r)}
+._1sdb9px5{justify-content:space-between;align-items:center;gap:var(--jhqn1x6);display:flex;overflow:hidden}
+._1sdb9px6{grid-template-rows:1fr;grid-template-columns:1fr;justify-content:space-between;align-items:center;display:grid}
+._1sdb9px7{width:var(--jhqn1xp);height:auto}
+._1sdb9px8{width:1px;height:var(--jhqn1xb);background-color:var(--_1nfc5stq)}
+._1sdb9px9{white-space:nowrap;text-overflow:ellipsis;grid-area:1/1;transition:opacity .15s ease-in-out;overflow:hidden}
+._1sdb9px2[data-state=open] ._1sdb9px9{opacity:0}
+._1sdb9px2[data-state=closed] ._1sdb9px9{opacity:1}
+._1sdb9px3:disabled ._1sdb9px9{opacity:.2}
+._1sdb9pxa{width:var(--jhqn1xb);height:var(--jhqn1xb);transition:transform var(--_1sdb9px1) var(--_1sdb9px0);transform-origin:50%}
+._1sdb9px2[data-state=open] ._1sdb9pxa{transform:rotate(180deg)}
+._1sdb9pxb{width:var(--jhqn1xd);height:var(--jhqn1xd);opacity:0;grid-area:1/1;place-self:center;transition:opacity .15s ease-in-out}
+._1sdb9px2[data-state=open] ._1sdb9pxb{opacity:1}

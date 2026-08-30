@@ -1,0 +1,130 @@
+/* CANVAS WORKSPACE */
+.canvas-area {
+  flex: 1;
+  background: #09090e;
+  background-image:
+    radial-gradient(circle at 50% 40%, rgba(51, 95, 207, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 50% 70%, rgba(255, 129, 146, 0.04) 0%, transparent 50%),
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+#canvas-wrapper {
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+/* CONTROLES DE ZOOM — agora na status-bar (não sobrepõe o canvas) */
+.zoom-controls {
+  position: static;
+  transform: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'GTA Art Deco Medium', sans-serif;
+  font-size: 11px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: none;
+  z-index: auto;
+  transition: var(--transition-rockstar);
+  flex-shrink: 0;
+}
+
+/* Fallback legado: se ainda estiver absoluto dentro do canvas-area (compat) */
+.canvas-area .zoom-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(27, 26, 39, 0.92);
+  padding: 6px 12px;
+  gap: 8px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  z-index: 30;
+}
+
+.zoom-controls:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.zoom-controls .zoom-val {
+  min-width: 38px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #fff;
+  font-size: 11px;
+}
+
+.zoom-controls button {
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-rockstar);
+  padding: 0;
+  line-height: 1;
+}
+
+.zoom-controls button:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: var(--border-hover);
+  transform: scale(1.08);
+}
+
+.zoom-controls button:active {
+  transform: scale(0.92);
+}
+
+.zoom-controls .zoom-fit-btn {
+  width: auto;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  padding: 0 8px;
+  font-size: 9px;
+  font-family: 'GTA Art Deco Medium', sans-serif;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+/* Variante na status-bar: compacta e integrada */
+.status-bar .zoom-controls {
+  margin: 0 8px;
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.10);
+}
+.status-bar .zoom-controls:hover {
+  background: rgba(255,255,255,0.10);
+}
