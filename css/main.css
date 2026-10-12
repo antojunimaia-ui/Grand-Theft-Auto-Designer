@@ -59,12 +59,20 @@ header {
   color: var(--text);
 }
 
-.logo span {
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 19px;
-  font-weight: 900;
+.logo-img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(255, 154, 168, 0.3));
+}
+
+.logo-subtitle {
+  font-family: 'GTA Art Deco Medium', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
 .header-actions {
