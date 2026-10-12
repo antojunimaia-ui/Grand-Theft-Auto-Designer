@@ -60,7 +60,7 @@ header {
 }
 
 .logo-img {
-  height: 32px;
+  height: 24px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 2px 8px rgba(255, 154, 168, 0.3));
@@ -69,7 +69,7 @@ header {
 .logo-subtitle {
   font-family: 'GTA Art Deco Medium', sans-serif;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--muted);
