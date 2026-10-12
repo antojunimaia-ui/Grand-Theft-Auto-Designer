@@ -570,7 +570,22 @@ function initUIEvents() {
 
   document.getElementById('btn-undo').onclick = undo;
   document.getElementById('btn-redo').onclick = redo;
-  document.getElementById('btn-export').onclick = exportPNG;
+  
+  // Export dropdown
+  document.getElementById('btn-export-png').onclick = exportPNG;
+  document.getElementById('btn-export-pdf').onclick = exportPDF;
+  
+  // Toggle dropdown ao clicar no botão principal
+  document.getElementById('btn-export').onclick = (e) => {
+    e.stopPropagation();
+    const dropdown = document.querySelector('.export-dropdown');
+    dropdown.classList.toggle('active');
+  };
+  
+  // Fecha dropdown ao clicar fora
+  document.addEventListener('click', () => {
+    document.querySelector('.export-dropdown')?.classList.remove('active');
+  });
 
   // Zoom
   document.getElementById('zoom-in').onclick = () => { currentZoom = Math.min(currentZoom + 0.1, 3); applyZoom(); };

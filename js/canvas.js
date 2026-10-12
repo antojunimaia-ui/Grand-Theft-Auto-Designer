@@ -707,7 +707,7 @@ function exportPNG() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    toast('Arte baixada em alta resolução!');
+    toast('PNG baixado em alta resolução!');
   } catch (err) {
     console.error('Erro ao exportar canvas:', err);
     const isTainted = err && err.name === 'SecurityError' || /tainted|toDataURL/i.test(err.message || '');
@@ -744,6 +744,49 @@ function exportPNG() {
       } catch (_) {}
     } else {
       toast('Erro ao exportar canvas: ' + (err.message || err));
+    }
+  }
+}
+
+// EXPORTAÇÃO PARA PDF
+function exportPDF() {
+  try {
+    // Garante render atualizado
+    canvas.requestRenderAll();
+    const mult = 1 / currentZoom;
+    const dataURL = canvas.toDataURL({ format: 'png', multiplier: mult, enableRetinaScaling: false });
+    
+    // jsPDF em landscape (1920x1080 = landscape)
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [CANVAS_W, CANVAS_H],
+      compress: true
+    });
+    
+    // Adiciona imagem ao PDF (cobre página inteira)
+    pdf.addImage(dataURL, 'PNG', 0, 0, CANVAS_W, CANVAS_H, '', 'FAST');
+    
+    // Metadados
+    pdf.setProperties({
+      title: 'GTA VI Artwork',
+      subject: 'Created with GTA VI Canvas Designer',
+      author: 'GTA VI Designer',
+      keywords: 'gta, gta6, artwork, design',
+      creator: 'https://github.com/antojunimaia-ui/Grand-Theft-Auto-Designer'
+    });
+    
+    // Salva
+    pdf.save('gta-vi-artwork.pdf');
+    toast('PDF baixado! Pronto para impressão 🔥');
+  } catch (err) {
+    console.error('Erro ao exportar PDF:', err);
+    const isTainted = err && err.name === 'SecurityError' || /tainted|toDataURL/i.test(err.message || '');
+    if (isTainted) {
+      toast('Export PDF bloqueado por CORS. Use servidor HTTP (não file://)');
+    } else {
+      toast('Erro ao gerar PDF: ' + (err.message || err));
     }
   }
 }
