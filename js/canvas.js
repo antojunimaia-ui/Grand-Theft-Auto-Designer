@@ -16,6 +16,12 @@ let currentBackgroundKey = 'transparent';
 
 function getCurrentBackgroundKey() { return currentBackgroundKey; }
 
+// ── OPACITADOR: estado de desenho ──
+let isDrawingOpacityMask = false;
+let opacityMaskPoints = [];
+let opacityMaskPreview = null;
+let opacityMaskIdCounter = 0;
+
 function fitCanvas() {
   const area = document.getElementById('canvas-area');
   const scaleW = (area.clientWidth - 80) / CANVAS_W;
@@ -48,7 +54,11 @@ function createGTAVIElement(text = 'LUCIA', opts = {}) {
     fontFamily: opts.fontFamily || 'GTA Art Deco Medium',
     fontColor: opts.fontColor || '#ffffff',
     shadowIntensity: opts.shadowIntensity !== undefined ? opts.shadowIntensity : 50,
-    glowIntensity: opts.glowIntensity !== undefined ? opts.glowIntensity : 0
+    glowIntensity: opts.glowIntensity !== undefined ? opts.glowIntensity : 0,
+    cornersEnabled: !!opts.cornersEnabled,
+    cornerTL: opts.cornerTL ?? 100, cornerTR: opts.cornerTR ?? 100, cornerBL: opts.cornerBL ?? 100, cornerBR: opts.cornerBR ?? 100,
+    linearEnabled: !!opts.linearEnabled, linearIntensity: opts.linearIntensity ?? 0, linearAngle: opts.linearAngle ?? 0,
+    radialEnabled: !!opts.radialEnabled, radialIntensity: opts.radialIntensity ?? 0, radialRadius: opts.radialRadius ?? 50
   });
 
   const imgObj = new fabric.Image(renderedCanvas, {
@@ -78,6 +88,10 @@ function createGTAVIElement(text = 'LUCIA', opts = {}) {
   imgObj._gtaFontColor = opts.fontColor || '#ffffff';
   imgObj._gtaShadowIntensity = opts.shadowIntensity !== undefined ? opts.shadowIntensity : 50;
   imgObj._gtaGlowIntensity = opts.glowIntensity !== undefined ? opts.glowIntensity : 0;
+  imgObj._gtaCornersEnabled = !!opts.cornersEnabled;
+  imgObj._gtaCornerTL = opts.cornerTL ?? 100; imgObj._gtaCornerTR = opts.cornerTR ?? 100; imgObj._gtaCornerBL = opts.cornerBL ?? 100; imgObj._gtaCornerBR = opts.cornerBR ?? 100;
+  imgObj._gtaLinearEnabled = !!opts.linearEnabled; imgObj._gtaLinearIntensity = opts.linearIntensity ?? 0; imgObj._gtaLinearAngle = opts.linearAngle ?? 0;
+  imgObj._gtaRadialEnabled = !!opts.radialEnabled; imgObj._gtaRadialIntensity = opts.radialIntensity ?? 0; imgObj._gtaRadialRadius = opts.radialRadius ?? 50;
   imgObj._gtaId = ++objCounter;
   imgObj._gtaLabel = (isNormal ? 'Subtítulo: ' : 'Logo: ') + (imgObj._gtaText || '(vazio)');
 
@@ -102,12 +116,24 @@ function updateGTAVIElement(obj) {
     fontFamily: obj._gtaFontFamily || 'GTA Art Deco Medium',
     fontColor: obj._gtaFontColor || '#ffffff',
     shadowIntensity: obj._gtaShadowIntensity !== undefined ? obj._gtaShadowIntensity : 50,
-    glowIntensity: obj._gtaGlowIntensity !== undefined ? obj._gtaGlowIntensity : 0
+    glowIntensity: obj._gtaGlowIntensity !== undefined ? obj._gtaGlowIntensity : 0,
+    cornersEnabled: !!obj._gtaCornersEnabled,
+    cornerTL: obj._gtaCornerTL ?? 100, cornerTR: obj._gtaCornerTR ?? 100, cornerBL: obj._gtaCornerBL ?? 100, cornerBR: obj._gtaCornerBR ?? 100,
+    linearEnabled: !!obj._gtaLinearEnabled, linearIntensity: obj._gtaLinearIntensity ?? 0, linearAngle: obj._gtaLinearAngle ?? 0,
+    radialEnabled: !!obj._gtaRadialEnabled, radialIntensity: obj._gtaRadialIntensity ?? 0, radialRadius: obj._gtaRadialRadius ?? 50
   });
 
   obj.setElement(newCanvas);
   obj.setCoords();
+  // Limpa máscara anterior para não restaurar estilo antigo ao reaplicar opacitador
+  obj._maskedOriginalElement = null;
   canvas.requestRenderAll();
+  // Reaplica opacitadores se este objeto for alvo de algum
+  if (typeof applyOpacityMasks === 'function' && canvas.getObjects().some(o => o._isOpacityMask)) {
+    const key = (typeof getObjectKey === 'function') ? getObjectKey(obj) : '';
+    const isTarget = canvas.getObjects().some(m => m._isOpacityMask && Array.isArray(m._targetIds) && (m._targetIds.includes(key) || m._targetIds.includes(obj._gtaId)));
+    if (isTarget) applyOpacityMasks();
+  }
 }
 
 function rerenderAllElements() {
@@ -134,6 +160,297 @@ function getFabricLoadOptions(src) {
   if (typeof src === 'string' && src.indexOf('data:') === 0) return null;
   if (window.location.protocol === 'file:') return null;
   return { crossOrigin: 'anonymous' };
+}
+
+// ──────────────────────────────────────────────────────────
+// OPACITADOR — linha móvel que controla opacidade de alvos via checklist (sem precisar desenhar)
+// ──────────────────────────────────────────────────────────
+function startOpacityMaskMode() {
+  // Cria direto uma linha horizontal centralizada que o usuário pode arrastar/redimensionar/rotacionar
+  createOpacityLine();
+  setActiveTool('select');
+}
+
+function updateOpacityMaskPreview() { /* legado — não usado no modo linha */ }
+function finishOpacityMask() { /* legado */ }
+function cancelOpacityMask() {
+  isDrawingOpacityMask = false;
+  opacityMaskPoints = [];
+  if (opacityMaskPreview) { canvas.remove(opacityMaskPreview); opacityMaskPreview = null; }
+  canvas.selection = true;
+  canvas.defaultCursor = 'default';
+  canvas.requestRenderAll();
+  setActiveTool('select');
+}
+
+function createOpacityLine() {
+  const lineW = Math.round(CANVAS_W * 0.65);
+  const line = new fabric.Line([0, 0, lineW, 0], {
+    left: CANVAS_W / 2,
+    top: CANVAS_H / 2,
+    originX: 'center',
+    originY: 'center',
+    stroke: '#ff9aa8',
+    strokeWidth: 6,
+    strokeLineCap: 'round',
+    strokeDashArray: [12, 8],
+    selectable: true,
+    hasControls: true,
+    hasBorders: true,
+    transparentCorners: false,
+    cornerColor: '#ffffff',
+    cornerStrokeColor: '#ff8192',
+    borderColor: '#ff8192',
+    cornerSize: 10,
+    objectCaching: false,
+    perPixelTargetFind: false
+  });
+  // Fundo sutil para área de manuseio (hit area) — linha mais grossa transparente
+  line._isOpacityMask = true;
+  line._isOpacityLine = true;
+  line._opacityMaskId = ++opacityMaskIdCounter;
+  line._opacityLevel = 50;
+  line._fade = 40;
+  line._targetIds = [];
+  line._label = 'Opacitador #' + line._opacityMaskId;
+  canvas.add(line);
+  canvas.setActiveObject(line);
+  canvas.requestRenderAll();
+  updateLayerList();
+  updateStatusCount();
+  syncPanel(line);
+  pushHistory();
+  toast('Linha opacitadora criada! Arraste/rotacione e escolha as camadas no painel');
+}
+
+function createOpacityMask(points) {
+  // Normaliza pontos relativos a (0,0) para Polygon
+  const poly = new fabric.Polygon(points, {
+    left: 0, top: 0,
+    fill: 'rgba(255,154,168,0.18)',
+    stroke: '#ff9aa8',
+    strokeWidth: 2,
+    strokeDashArray: [6,4],
+    selectable: true,
+    hasControls: true,
+    hasBorders: true,
+    transparentCorners: false,
+    cornerColor: '#ffffff',
+    cornerStrokeColor: '#ff8192',
+    borderColor: '#ff8192',
+    cornerSize: 10,
+    objectCaching: false,
+    perPixelTargetFind: true
+  });
+  poly._isOpacityMask = true;
+  poly._opacityMaskId = ++opacityMaskIdCounter;
+  poly._opacityLevel = 50;
+  poly._fade = 40;
+  poly._targetIds = [];
+  // Guarda bounding para checklist interseção opcional
+  poly._label = 'Opacitador #' + poly._opacityMaskId;
+  canvas.add(poly);
+  canvas.setActiveObject(poly);
+  canvas.requestRenderAll();
+  updateLayerList();
+  updateStatusCount();
+  syncPanel(poly);
+  pushHistory();
+  toast('Opacitador criado! Selecione as camadas no painel');
+}
+
+function applyOpacityMasks() {
+  const masks = canvas.getObjects().filter(o => o._isOpacityMask);
+  const all = canvas.getObjects().filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset);
+  // Restaura alvos para estado sem máscara antes de reaplicar (evita acumular)
+  all.forEach(obj => {
+    // Restaura elemento original se foi mascarado por linha
+    if (obj._maskedOriginalElement) {
+      try { obj.setElement(obj._maskedOriginalElement); } catch {}
+      obj._maskedOriginalElement = null;
+    }
+    if (obj._baseOpacity !== undefined) {
+      obj.set('opacity', obj._baseOpacity);
+    }
+  });
+  if (!masks.length) { canvas.requestRenderAll(); return; }
+
+  // Para cada mask (linha), aplica percolado por pixel: só a parte ABAIXO da linha fica com opacidade reduzida
+  masks.forEach(mask => {
+    if (!Array.isArray(mask._targetIds) || !mask._targetIds.length) return;
+    const level = (mask._opacityLevel ?? 50) / 100;
+    const fade = mask._fade ?? 40; // px de transição suave
+    // Posição Y da linha no canvas lógico (considera centro e angle 0 por enquanto; se linha rotacionada, usa top como referência)
+    const lineY = mask.top; // linha horizontal -> tudo com y > lineY = abaixo
+    const angle = mask.angle || 0;
+    // Para linhas não horizontais, poderíamos calcular half-plane, mas por enquanto só horizontal
+    const isHorizontal = Math.abs(angle) < 15 || Math.abs(angle - 180) < 15 || Math.abs(angle - 360) < 15;
+
+    all.forEach(obj => {
+      const key = getObjectKey(obj);
+      const isTarget = mask._targetIds.includes(key) || mask._targetIds.includes(obj._gtaId);
+      if (!isTarget) return;
+      // Guarda base
+      if (obj._baseOpacity === undefined) obj._baseOpacity = obj.opacity ?? 1;
+
+      // Se for texto GTA (offCanvas), faz máscara por pixel recortando abaixo da linha
+      if (typeof obj._gtaText === 'string') {
+        const el = obj.getElement();
+        if (!el || el.tagName !== 'CANVAS') return;
+        const w = el.width, h = el.height;
+        if (!w || !h) return;
+        // Salva original para restauração
+        if (!obj._maskedOriginalElement) {
+          const orig = document.createElement('canvas');
+          orig.width = w; orig.height = h;
+          orig.getContext('2d').drawImage(el, 0, 0);
+          obj._maskedOriginalElement = orig;
+        } else {
+          // Restaura original antes de reaplicar (evita dupla multiplicação)
+          const ctxR = el.getContext('2d');
+          ctxR.clearRect(0,0,w,h);
+          ctxR.drawImage(obj._maskedOriginalElement, 0, 0);
+        }
+        const ctx = el.getContext('2d');
+        try {
+          const imgData = ctx.getImageData(0,0,w,h);
+          const data = imgData.data;
+          // Mapeia y do offCanvas para y no canvas principal
+          // offCanvas y=0 -> mainY = obj.top - h*obj.scaleY/2 (assumindo origin center, sem rotação)
+          // Para simplificar, considera scaleY e ignora rotação do texto para o recorte
+          const scaleY = obj.scaleY || 1;
+          const objTop = (obj.top || 0) - (h * scaleY / 2);
+          for (let y = 0; y < h; y++) {
+            let mult = 1;
+            if (isHorizontal) {
+              const pixelMainY = (obj.top || 0) + (y - h/2) * scaleY;
+              const d = pixelMainY - lineY;
+              if (fade <= 1) {
+                if (d > 0) mult = level;
+              } else {
+                if (d <= 0) mult = 1;
+                else if (d >= fade) mult = level;
+                else {
+                  let t = d / fade;
+                  t = t*t*(3 - 2*t);
+                  mult = 1 - (1 - level) * t;
+                }
+              }
+            } else {
+              const objBelow = (obj.top || 0) > lineY;
+              mult = objBelow ? level : 1;
+            }
+            if (mult < 0.999) {
+              for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                if (data[i+3] === 0) continue;
+                data[i+3] = Math.round(data[i+3] * mult);
+              }
+            }
+          }
+          ctx.putImageData(imgData, 0, 0);
+          obj.setCoords(); obj.dirty = true;
+        } catch {}
+      } else {
+        // Para imagens (char/asset): cria canvas temporário com a imagem e aplica mesmo recorte por pixel
+        const el = obj.getElement();
+        if (!el) return;
+        const imgW = el.naturalWidth || el.width;
+        const imgH = el.naturalHeight || el.height;
+        if (!imgW || !imgH) return;
+        // Cria offscreen para máscara
+        const tmp = document.createElement('canvas');
+        const tw = Math.max(1, Math.round(imgW * (obj.scaleX || 1)));
+        // Mas para per-pixel precisamos mapear; mais simples: se objeto está abaixo da linha, aplica opacidade inteira
+        // Para recorte parcial em imagens, faria similar ao texto: precisa mapear pixels
+        // Simplificação: se objeto está abaixo, aplica opacidade total; se straddles, aplica per-pixel
+        const objY = obj.top || 0;
+        const halfH = (imgH * (obj.scaleY || 1)) / 2;
+        const objTopY = objY - halfH, objBottomY = objY + halfH;
+        if (objTopY > lineY) {
+          // Totalmente abaixo -> aplica nível
+          obj.set('opacity', (obj._baseOpacity ?? 1) * level);
+        } else if (objBottomY < lineY) {
+          // Totalmente acima -> mantém base
+          obj.set('opacity', obj._baseOpacity ?? 1);
+        } else {
+          // Cruza a linha -> precisa per-pixel: converte imagem para canvas e recorta
+          try {
+            const c = document.createElement('canvas');
+            c.width = imgW; c.height = imgH;
+            const cctx = c.getContext('2d');
+            cctx.drawImage(el, 0, 0, imgW, imgH);
+            const imgData = cctx.getImageData(0,0,imgW,imgH);
+            const data = imgData.data;
+            const scaleY = obj.scaleY || 1;
+            for (let y = 0; y < imgH; y++) {
+              const mainY = (obj.top || 0) + (y - imgH/2) * scaleY;
+              let mult = 1;
+              if (fade <= 1) {
+                if (mainY > lineY) mult = level;
+              } else {
+                const d = mainY - lineY;
+                if (d <= 0) mult = 1;
+                else if (d >= fade) mult = level;
+                else {
+                  let t = d / fade;
+                  t = t*t*(3 - 2*t);
+                  mult = 1 - (1 - level) * t;
+                }
+              }
+              if (mult < 0.999) {
+                for (let x = 0; x < imgW; x++) {
+                  const i = (y * imgW + x) * 4;
+                  if (data[i+3] === 0) continue;
+                  data[i+3] = Math.round(data[i+3] * mult);
+                }
+              }
+            }
+            cctx.putImageData(imgData, 0, 0);
+            if (!obj._maskedOriginalElement) obj._maskedOriginalElement = el;
+            obj.setElement(c);
+            obj.setCoords();
+          } catch {
+            // Fallback per-object
+            obj.set('opacity', (obj._baseOpacity ?? 1) * level);
+          }
+        }
+      }
+    });
+  });
+  canvas.requestRenderAll();
+}
+
+function getAllTargetableObjects() {
+  return canvas.getObjects().filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset);
+}
+
+function getObjectKey(obj) {
+  if (obj._gtaId) return 'gta-' + obj._gtaId;
+  if (obj._charKey) return 'char-' + obj._charKey;
+  if (obj._assetKey) return 'asset-' + obj._assetKey;
+  return '';
+}
+
+function initOpacityMaskEvents() {
+  canvas.on('mouse:down', function(opt) {
+    if (!isDrawingOpacityMask) return;
+    const evt = opt.e;
+    // Evita clique com botão direito
+    if (evt.button === 2) return;
+    const pointer = canvas.getPointer(evt);
+    opacityMaskPoints.push({ x: pointer.x, y: pointer.y });
+    updateOpacityMaskPreview();
+  });
+  canvas.on('mouse:dblclick', function() {
+    if (isDrawingOpacityMask) finishOpacityMask();
+  });
+  // Atalhos durante desenho: Enter fecha, Esc cancela
+  document.addEventListener('keydown', function(e) {
+    if (!isDrawingOpacityMask) return;
+    if (e.key === 'Enter') { e.preventDefault(); finishOpacityMask(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelOpacityMask(); }
+  });
 }
 
 // ADICIONAR PERSONAGENS AO CANVAS

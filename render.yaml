@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: gta-vi-designer
+    env: static
+    buildCommand: echo "No build needed - static site"
+    staticPublishPath: .
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000
+      - path: /backgrounds/*
+        name: Cache-Control
+        value: public, max-age=31536000
+      - path: /Characters/*
+        name: Cache-Control
+        value: public, max-age=31536000
+      - path: /Fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"

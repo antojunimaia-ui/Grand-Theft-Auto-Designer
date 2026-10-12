@@ -83,6 +83,7 @@ function initApp() {
   initUIEvents();
   initGalleryModal();
   if (typeof initProjectsModal === 'function') initProjectsModal();
+  if (typeof initOpacityMaskEvents === 'function') initOpacityMaskEvents();
   initKeyboardShortcuts();
   fitCanvas();
 

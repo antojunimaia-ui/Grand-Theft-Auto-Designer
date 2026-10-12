@@ -30,17 +30,24 @@ function syncPanel(obj) {
 
   const isChar = !!obj._isChar;
   const isAsset = !!obj._isAsset;
+  const isMask = !!obj._isOpacityMask;
   const isNormal = obj._gtaType === 'normal';
 
-  const displayName = isAsset ? `Asset: ${obj._assetLabel}` : isChar ? `Personagem: ${obj._charLabel}` : (obj._gtaText || '(vazio)');
+  const displayName = isMask ? (obj._label || `Opacitador #${obj._opacityMaskId||''}`) : isAsset ? `Asset: ${obj._assetLabel}` : isChar ? `Personagem: ${obj._charLabel}` : (obj._gtaText || '(vazio)');
   document.getElementById('status-selname').textContent = displayName;
 
   // Mostra/esconde seções baseadas no tipo de elemento selecionado
-  document.getElementById('prop-text').parentElement.style.display = isChar ? 'none' : '';
-  document.getElementById('section-logo-styles').style.display = (!isChar && !isNormal) ? '' : 'none';
-  document.getElementById('section-normal-styles').style.display = (!isChar && isNormal) ? '' : 'none';
-  document.getElementById('prop-spacing').parentElement.style.display = isChar ? 'none' : '';
-  document.getElementById('prop-size').parentElement.style.display = isChar ? 'none' : '';
+  document.getElementById('prop-text').parentElement.style.display = (isChar || isMask) ? 'none' : '';
+  document.getElementById('section-logo-styles').style.display = (!isChar && !isMask && !isNormal) ? '' : 'none';
+  document.getElementById('section-normal-styles').style.display = (!isChar && !isMask && isNormal) ? '' : 'none';
+  document.getElementById('prop-spacing').parentElement.style.display = (isChar || isMask) ? 'none' : '';
+  document.getElementById('prop-size').parentElement.style.display = (isChar || isMask) ? 'none' : '';
+  // Opacitador
+  const maskSec = document.getElementById('section-opacity-mask');
+  if (maskSec) maskSec.style.display = isMask ? '' : 'none';
+  // Opacidade avançada só para textos GTA (não mask/char)
+  const advSec = document.getElementById('section-advanced-opacity');
+  if (advSec) advSec.style.display = (!isChar && !isMask && typeof obj._gtaText === 'string') ? '' : 'none';
 
   if (!isChar && !isAsset) {
     document.getElementById('prop-text').value = obj._gtaText;
@@ -75,20 +82,80 @@ function syncPanel(obj) {
   document.getElementById('prop-rotate-val').textContent = Math.round(obj.angle || 0) + '°';
 
   // Efeitos visuais (shadow / glow) — apenas em elementos GTA (não personagens)
-  if (typeof obj._gtaText === 'string') {
+  if (typeof obj._gtaText === 'string' && !isMask) {
     const shadow = obj._gtaShadowIntensity !== undefined ? obj._gtaShadowIntensity : 50;
     const glow   = obj._gtaGlowIntensity !== undefined ? obj._gtaGlowIntensity : 0;
     document.getElementById('prop-shadow').value = shadow;
     document.getElementById('prop-shadow-val').textContent = shadow;
     document.getElementById('prop-glow').value = glow;
     document.getElementById('prop-glow-val').textContent = glow;
+    // Opacidade avançada
+    const tl = obj._gtaCornerTL ?? 100, tr = obj._gtaCornerTR ?? 100, bl = obj._gtaCornerBL ?? 100, br = obj._gtaCornerBR ?? 100;
+    document.getElementById('prop-corner-tl').value = tl; document.getElementById('prop-corner-tl-val').textContent = tl + '%';
+    document.getElementById('prop-corner-tr').value = tr; document.getElementById('prop-corner-tr-val').textContent = tr + '%';
+    document.getElementById('prop-corner-bl').value = bl; document.getElementById('prop-corner-bl-val').textContent = bl + '%';
+    document.getElementById('prop-corner-br').value = br; document.getElementById('prop-corner-br-val').textContent = br + '%';
+    document.getElementById('prop-linear-intensity').value = obj._gtaLinearIntensity ?? 0; document.getElementById('prop-linear-intensity-val').textContent = (obj._gtaLinearIntensity ?? 0) + '%';
+    document.getElementById('prop-linear-angle').value = obj._gtaLinearAngle ?? 0; document.getElementById('prop-linear-angle-val').textContent = (obj._gtaLinearAngle ?? 0) + '°';
+    document.getElementById('prop-radial-intensity').value = obj._gtaRadialIntensity ?? 0; document.getElementById('prop-radial-intensity-val').textContent = (obj._gtaRadialIntensity ?? 0) + '%';
+    document.getElementById('prop-radial-radius').value = obj._gtaRadialRadius ?? 50; document.getElementById('prop-radial-radius-val').textContent = (obj._gtaRadialRadius ?? 50) + '%';
+    // Toggle panels visibilidade
+    const cornersOn = !!obj._gtaCornersEnabled;
+    const linearOn = !!obj._gtaLinearEnabled;
+    const radialOn = !!obj._gtaRadialEnabled;
+    document.getElementById('adv-corners-panel').style.display = cornersOn ? '' : 'none';
+    document.getElementById('adv-linear-panel').style.display = linearOn ? '' : 'none';
+    document.getElementById('adv-radial-panel').style.display = radialOn ? '' : 'none';
+    document.getElementById('btn-adv-corners')?.classList.toggle('active', cornersOn);
+    document.getElementById('btn-adv-linear')?.classList.toggle('active', linearOn);
+    document.getElementById('btn-adv-radial')?.classList.toggle('active', radialOn);
   }
+  // Opacitador: popula checklist, nível e fade
+  if (isMask) {
+    const lvl = obj._opacityLevel ?? 50;
+    const fade = obj._fade ?? 40;
+    document.getElementById('prop-mask-opacity').value = lvl;
+    document.getElementById('prop-mask-opacity-val').textContent = lvl + '%';
+    const fadeEl = document.getElementById('prop-mask-fade');
+    if (fadeEl) { fadeEl.value = fade; document.getElementById('prop-mask-fade-val').textContent = fade + 'px'; }
+    renderMaskTargetList(obj);
+  }
+}
+
+function renderMaskTargetList(maskObj) {
+  const container = document.getElementById('mask-target-list');
+  if (!container || !maskObj) return;
+  const targets = getAllTargetableObjects();
+  container.innerHTML = '';
+  if (!targets.length) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px">Nenhuma camada para afetar</div>';
+    return;
+  }
+  targets.forEach(obj => {
+    const key = getObjectKey(obj);
+    const label = obj._isAsset ? `🌴 ${obj._assetLabel}` : obj._isChar ? `🧍 ${obj._charLabel}` : (obj._gtaLabel || obj._gtaText || '(vazio)');
+    const checked = Array.isArray(maskObj._targetIds) && maskObj._targetIds.includes(key);
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:background .15s;';
+    row.onmouseenter = () => row.style.background = 'rgba(255,255,255,0.06)';
+    row.onmouseleave = () => row.style.background = '';
+    row.innerHTML = `<input type="checkbox" ${checked ? 'checked' : ''} style="accent-color:#ff9aa8"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</span>`;
+    const cb = row.querySelector('input');
+    cb.onchange = () => {
+      if (!Array.isArray(maskObj._targetIds)) maskObj._targetIds = [];
+      if (cb.checked) { if (!maskObj._targetIds.includes(key)) maskObj._targetIds.push(key); }
+      else { maskObj._targetIds = maskObj._targetIds.filter(k => k !== key); }
+      applyOpacityMasks();
+      pushHistory();
+    };
+    container.appendChild(row);
+  });
 }
 
 function updateLayerList() {
   const list = document.getElementById('layer-list');
   const allObjects = canvas.getObjects();
-  const objs = allObjects.filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset);
+  const objs = allObjects.filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset || o._isOpacityMask);
   if (!objs.length) {
     list.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0">Nenhuma camada</div>';
     return;
@@ -102,7 +169,9 @@ function updateLayerList() {
     item.className = 'layer-item' + (isActive ? ' active' : '');
     item.draggable = true;
 
-    const displayName = obj._isAsset
+    const displayName = obj._isOpacityMask
+      ? `◧ ${obj._label || 'Opacitador'}`
+      : obj._isAsset
       ? `🌴 ${obj._assetLabel}`
       : obj._isChar
       ? `🧍 ${obj._charLabel}`
@@ -180,7 +249,7 @@ function updateLayerList() {
 }
 
 function updateStatusCount() {
-  document.getElementById('status-count').textContent = canvas.getObjects().filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset).length;
+  document.getElementById('status-count').textContent = canvas.getObjects().filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset || o._isOpacityMask).length;
 }
 
 function setActiveTool(tool) {
@@ -204,10 +273,16 @@ function deleteSelected() {
 
 // INICIALIZADOR DE EVENTOS DA INTERFACE
 function initUIEvents() {
-  canvas.on('selection:created', () => syncPanel(getActiveGTAObj()));
-  canvas.on('selection:updated', () => syncPanel(getActiveGTAObj()));
+  function syncActive() {
+    const raw = canvas.getActiveObject();
+    if (raw && raw._isOpacityMask) { syncPanel(raw); return; }
+    syncPanel(getActiveGTAObj());
+  }
+  canvas.on('selection:created', syncActive);
+  canvas.on('selection:updated', syncActive);
   canvas.on('selection:cleared', () => syncPanel(null));
-  canvas.on('object:modified', () => { syncPanel(getActiveGTAObj()); pushHistory(); });
+  canvas.on('object:modified', () => { syncActive(); pushHistory(); if (canvas.getObjects().some(o=>o._isOpacityMask) && typeof applyOpacityMasks === 'function') applyOpacityMasks(); });
+  canvas.on('object:moving', () => { if (canvas.getObjects().some(o=>o._isOpacityMask) && typeof applyOpacityMasks === 'function') { clearTimeout(window._maskMoveTimer); window._maskMoveTimer = setTimeout(applyOpacityMasks, 30); } });
 
   // Handlers de Mudança nas Propriedades
   document.getElementById('prop-text').oninput = e => {
@@ -249,11 +324,14 @@ function initUIEvents() {
   };
 
   document.getElementById('prop-opacity').oninput = e => {
-    const obj = getActiveGTAObj(); if (!obj) return;
+    const obj = getActiveGTAObj() || canvas.getActiveObject();
+    if (!obj) return;
     const v = parseInt(e.target.value);
     document.getElementById('prop-opacity-val').textContent = v + '%';
     obj.set('opacity', v / 100);
+    obj._baseOpacity = v / 100;
     canvas.requestRenderAll();
+    if (typeof applyOpacityMasks === 'function' && canvas.getObjects().some(o=>o._isOpacityMask)) applyOpacityMasks();
   };
 
   document.getElementById('prop-rotate').oninput = e => {
@@ -379,6 +457,116 @@ function initUIEvents() {
     pushHistory();
     toast('Canvas limpo!');
   };
+
+  // Opacitador
+  document.getElementById('tool-opacity')?.addEventListener('click', () => {
+    if (typeof startOpacityMaskMode === 'function') startOpacityMaskMode();
+  });
+  document.getElementById('prop-mask-opacity')?.addEventListener('input', e => {
+    const mask = canvas.getActiveObject();
+    if (!mask || !mask._isOpacityMask) return;
+    const v = parseInt(e.target.value);
+    document.getElementById('prop-mask-opacity-val').textContent = v + '%';
+    mask._opacityLevel = v;
+    applyOpacityMasks();
+  });
+  document.getElementById('prop-mask-fade')?.addEventListener('input', e => {
+    const mask = canvas.getActiveObject();
+    if (!mask || !mask._isOpacityMask) return;
+    const v = parseInt(e.target.value);
+    document.getElementById('prop-mask-fade-val').textContent = v + 'px';
+    mask._fade = v;
+    applyOpacityMasks();
+  });
+  document.getElementById('btn-mask-select-all')?.addEventListener('click', () => {
+    const mask = canvas.getActiveObject();
+    if (!mask || !mask._isOpacityMask) return;
+    mask._targetIds = getAllTargetableObjects().map(o => getObjectKey(o));
+    renderMaskTargetList(mask);
+    applyOpacityMasks(); pushHistory();
+  });
+  document.getElementById('btn-mask-clear')?.addEventListener('click', () => {
+    const mask = canvas.getActiveObject();
+    if (!mask || !mask._isOpacityMask) return;
+    mask._targetIds = [];
+    renderMaskTargetList(mask);
+    if (typeof applyOpacityMasks === 'function') applyOpacityMasks();
+    pushHistory();
+  });
+  document.getElementById('btn-mask-edit')?.addEventListener('click', () => {
+    const mask = canvas.getActiveObject();
+    if (!mask || !mask._isOpacityMask) return;
+    // Reentra em modo desenho editando pontos atuais
+    const pts = mask.get('points') || [];
+    // Converte pontos relativos para absolutos
+    const abs = pts.map(p => ({ x: p.x + mask.left, y: p.y + mask.top }));
+    canvas.remove(mask);
+    opacityMaskPoints = abs;
+    isDrawingOpacityMask = true;
+    canvas.selection = false;
+    canvas.defaultCursor = 'crosshair';
+    setActiveTool('opacity');
+    updateOpacityMaskPreview();
+    toast('Editando forma — clique para adicionar pontos, Enter para concluir');
+  });
+  document.getElementById('btn-mask-delete')?.addEventListener('click', () => {
+    const mask = canvas.getActiveObject();
+    if (!mask || !mask._isOpacityMask) return;
+    canvas.remove(mask);
+    canvas.discardActiveObject();
+    updateLayerList(); updateStatusCount(); syncPanel(null);
+    if (typeof applyOpacityMasks === 'function') applyOpacityMasks();
+    else canvas.requestRenderAll();
+    pushHistory(); toast('Opacitador removido');
+  });
+
+  // Opacidade avançada — textos
+  function bindAdvSlider(id, prop, isAngle) {
+    document.getElementById(id)?.addEventListener('input', e => {
+      const obj = getActiveGTAObj(); if (!obj || typeof obj._gtaText !== 'string') return;
+      const v = parseInt(e.target.value);
+      obj[prop] = v;
+      document.getElementById(id + '-val').textContent = v + (isAngle ? '°' : '%');
+      updateGTAVIElement(obj);
+    });
+  }
+  bindAdvSlider('prop-corner-tl', '_gtaCornerTL');
+  bindAdvSlider('prop-corner-tr', '_gtaCornerTR');
+  bindAdvSlider('prop-corner-bl', '_gtaCornerBL');
+  bindAdvSlider('prop-corner-br', '_gtaCornerBR');
+  bindAdvSlider('prop-linear-intensity', '_gtaLinearIntensity');
+  bindAdvSlider('prop-linear-angle', '_gtaLinearAngle', true);
+  bindAdvSlider('prop-radial-intensity', '_gtaRadialIntensity');
+  bindAdvSlider('prop-radial-radius', '_gtaRadialRadius');
+  document.getElementById('btn-adv-corners')?.addEventListener('click', function() {
+    const obj = getActiveGTAObj(); if (!obj) return;
+    obj._gtaCornersEnabled = !obj._gtaCornersEnabled;
+    this.classList.toggle('active', obj._gtaCornersEnabled);
+    document.getElementById('adv-corners-panel').style.display = obj._gtaCornersEnabled ? '' : 'none';
+    updateGTAVIElement(obj); pushHistory();
+  });
+  document.getElementById('btn-adv-linear')?.addEventListener('click', function() {
+    const obj = getActiveGTAObj(); if (!obj) return;
+    obj._gtaLinearEnabled = !obj._gtaLinearEnabled;
+    this.classList.toggle('active', obj._gtaLinearEnabled);
+    document.getElementById('adv-linear-panel').style.display = obj._gtaLinearEnabled ? '' : 'none';
+    updateGTAVIElement(obj); pushHistory();
+  });
+  document.getElementById('btn-adv-radial')?.addEventListener('click', function() {
+    const obj = getActiveGTAObj(); if (!obj) return;
+    obj._gtaRadialEnabled = !obj._gtaRadialEnabled;
+    this.classList.toggle('active', obj._gtaRadialEnabled);
+    document.getElementById('adv-radial-panel').style.display = obj._gtaRadialEnabled ? '' : 'none';
+    updateGTAVIElement(obj); pushHistory();
+  });
+  document.getElementById('btn-adv-reset')?.addEventListener('click', () => {
+    const obj = getActiveGTAObj(); if (!obj) return;
+    obj._gtaCornersEnabled = false; obj._gtaLinearEnabled = false; obj._gtaRadialEnabled = false;
+    obj._gtaCornerTL = obj._gtaCornerTR = obj._gtaCornerBL = obj._gtaCornerBR = 100;
+    obj._gtaLinearIntensity = 0; obj._gtaLinearAngle = 0;
+    obj._gtaRadialIntensity = 0; obj._gtaRadialRadius = 50;
+    syncPanel(obj); updateGTAVIElement(obj); pushHistory(); toast('Opacidade avançada resetada');
+  });
 
   document.getElementById('btn-undo').onclick = undo;
   document.getElementById('btn-redo').onclick = redo;

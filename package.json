@@ -1,0 +1,22 @@
+{
+  "name": "gta-vi-canvas-designer",
+  "version": "1.0.0",
+  "description": "Rockstar-inspired artwork studio for GTA VI covers, logos and posters",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve . -p $PORT",
+    "dev": "npx serve . -p 3000"
+  },
+  "keywords": [
+    "gta",
+    "gta-vi",
+    "canvas",
+    "design",
+    "rockstar"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

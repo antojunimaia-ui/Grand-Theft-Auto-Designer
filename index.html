@@ -52,6 +52,10 @@
       GAL
     </button>
     <div class="toolbar-sep"></div>
+    <button class="tool-btn" id="tool-opacity" title="Opacitador — Desenhar área (O)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l7 10-7 10L5 12 12 2z"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/></svg>
+      OPA
+    </button>
     <button class="tool-btn danger" id="tool-delete" title="Deletar Camada (Del)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
       DEL
@@ -175,6 +179,59 @@
           <button class="btn" id="btn-send-back" style="flex:1;font-size:10px">&#9660; Fundo</button>
         </div>
       </div>
+
+      <!-- OPACITADOR (aparece só quando mask selecionado) -->
+      <div class="panel-section" id="section-opacity-mask" style="display:none">
+        <div class="panel-label">Opacitador</div>
+        <div style="font-size:10px;color:var(--muted);line-height:1.4;margin-bottom:10px">Linha móvel no canvas. Arraste, rotacione ou redimensione e escolha no checklist quais camadas terão a opacidade alterada.</div>
+        <div class="slider-row">
+          <label>Nível</label>
+          <input type="range" id="prop-mask-opacity" min="0" max="100" value="50" step="1">
+          <span class="slider-val" id="prop-mask-opacity-val">50%</span>
+        </div>
+        <div class="slider-row">
+          <label>Fade</label>
+          <input type="range" id="prop-mask-fade" min="0" max="200" value="40" step="2">
+          <span class="slider-val" id="prop-mask-fade-val">40px</span>
+        </div>
+        <div class="panel-label" style="margin-top:10px">Afetar camadas</div>
+        <div id="mask-target-list" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;padding:6px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" id="btn-mask-select-all" style="flex:1;font-size:10px">Todos</button>
+          <button class="btn" id="btn-mask-clear" style="flex:1;font-size:10px">Limpar</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn" id="btn-mask-edit" style="flex:1;font-size:10px">Editar forma</button>
+          <button class="btn danger" id="btn-mask-delete" style="flex:1;font-size:10px">Remover</button>
+        </div>
+      </div>
+
+      <!-- OPACIDADE AVANÇADA PARA TEXTOS -->
+      <div class="panel-section" id="section-advanced-opacity" style="display:none">
+        <div class="panel-label">Opacidade Avançada (Texto)</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="btn small" id="btn-adv-corners" style="flex:1;font-size:9px">Cantos</button>
+          <button class="btn small" id="btn-adv-linear" style="flex:1;font-size:9px">Linear</button>
+          <button class="btn small" id="btn-adv-radial" style="flex:1;font-size:9px">Radial</button>
+        </div>
+        <div id="adv-corners-panel" style="display:none">
+          <div class="slider-row"><label>Sup. Esq</label><input type="range" id="prop-corner-tl" min="0" max="100" value="100"><span class="slider-val" id="prop-corner-tl-val">100%</span></div>
+          <div class="slider-row"><label>Sup. Dir</label><input type="range" id="prop-corner-tr" min="0" max="100" value="100"><span class="slider-val" id="prop-corner-tr-val">100%</span></div>
+          <div class="slider-row"><label>Inf. Esq</label><input type="range" id="prop-corner-bl" min="0" max="100" value="100"><span class="slider-val" id="prop-corner-bl-val">100%</span></div>
+          <div class="slider-row"><label>Inf. Dir</label><input type="range" id="prop-corner-br" min="0" max="100" value="100"><span class="slider-val" id="prop-corner-br-val">100%</span></div>
+        </div>
+        <div id="adv-linear-panel" style="display:none">
+          <div class="slider-row"><label>Intensidade</label><input type="range" id="prop-linear-intensity" min="0" max="100" value="0"><span class="slider-val" id="prop-linear-intensity-val">0%</span></div>
+          <div class="slider-row"><label>Ângulo</label><input type="range" id="prop-linear-angle" min="0" max="360" value="0"><span class="slider-val" id="prop-linear-angle-val">0°</span></div>
+        </div>
+        <div id="adv-radial-panel" style="display:none">
+          <div class="slider-row"><label>Intensidade</label><input type="range" id="prop-radial-intensity" min="0" max="100" value="0"><span class="slider-val" id="prop-radial-intensity-val">0%</span></div>
+          <div class="slider-row"><label>Raio</label><input type="range" id="prop-radial-radius" min="10" max="100" value="50"><span class="slider-val" id="prop-radial-radius-val">50%</span></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" id="btn-adv-reset" style="flex:1;font-size:10px">Resetar</button>
+        </div>
+      </div>
     </div>
 
         <!-- GALERIA agora na toolbar esquerda (GAL/BG) -->
@@ -210,7 +267,7 @@
 
 <!-- MODAL DE PROJETOS -->
 <div id="projects-modal" class="modal-overlay" style="display:none">
-  <div class="modal-box" style="width:min(640px,96vw);max-height:88vh">
+  <div class="modal-box modal-box--projects" style="width:min(920px,96vw);height:min(720px,90vh);max-height:90vh">
     <div class="modal-header">
       <div class="modal-title">Projetos <span id="projects-count" class="modal-count">0</span></div>
       <button id="projects-modal-close" class="modal-close" title="Fechar (Esc)">&times;</button>
@@ -234,7 +291,7 @@
       <!-- LISTA -->
       <div>
         <div class="panel-label">Projetos salvos</div>
-        <div id="projects-list" style="display:flex;flex-direction:column;gap:10px"></div>
+        <div id="projects-list"></div>
         <div id="projects-empty" style="text-align:center;color:var(--muted);padding:22px 0;font-size:12px;border:1px dashed var(--border);border-radius:12px;background:rgba(255,255,255,0.02)">
           Nenhum projeto salvo ainda.<br><span style="font-size:11px;opacity:0.7">Salve o projeto atual para aparecer aqui.</span>
         </div>

@@ -6,6 +6,62 @@ let palmColorImg = null;
 let palmMonoImg = null;
 let fontLoaded = false;
 
+function applyAdvancedOpacityMask(targetCanvas, opts) {
+  const { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius } = opts;
+  const enabled = cornersEnabled || linearEnabled || radialEnabled;
+  if (!enabled) return;
+  const ctx = targetCanvas.getContext('2d');
+  if (!ctx) return;
+  const w = targetCanvas.width, h = targetCanvas.height;
+  if (w === 0 || h === 0) return;
+  try {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const tl = (cornerTL ?? 100) / 100, tr = (cornerTR ?? 100) / 100, bl = (cornerBL ?? 100) / 100, br = (cornerBR ?? 100) / 100;
+    const linInt = (linearIntensity ?? 0) / 100;
+    const radInt = (radialIntensity ?? 0) / 100;
+    const radR = (radialRadius ?? 50) / 100;
+    const angleRad = (linearAngle ?? 0) * Math.PI / 180;
+    const cosA = Math.cos(angleRad), sinA = Math.sin(angleRad);
+    // Vetor projetado: para cobertura total, usa diagonal do canvas
+    const diag = Math.sqrt(w*w + h*h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (data[i+3] === 0) continue;
+        let alphaMult = 1;
+        if (cornersEnabled) {
+          const ux = w > 1 ? x / (w - 1) : 0;
+          const uy = h > 1 ? y / (h - 1) : 0;
+          const cornerAlpha = tl * (1 - ux) * (1 - uy) + tr * ux * (1 - uy) + bl * (1 - ux) * uy + br * ux * uy;
+          alphaMult *= cornerAlpha;
+        }
+        if (linearEnabled && linInt > 0) {
+          // Projeta ponto no eixo do ângulo, normaliza 0..1
+          const cx = w / 2, cy = h / 2;
+          const dx = x - cx, dy = y - cy;
+          const proj = (dx * cosA + dy * sinA) / (diag / 2);
+          const t = (proj + 1) / 2; // 0..1
+          const clamped = Math.max(0, Math.min(1, t));
+          // Intensidade controla quão forte o fade: 0 = sem efeito, 1 = vai de 1 a 0
+          const linAlpha = 1 - linInt * (1 - clamped);
+          alphaMult *= linAlpha;
+        }
+        if (radialEnabled && radInt > 0) {
+          const cx = w / 2, cy = h / 2;
+          const dx = (x - cx) / (w / 2), dy = (y - cy) / (h / 2);
+          const dist = Math.sqrt(dx*dx + dy*dy); // 0 centro, ~1.4 cantos
+          const norm = Math.min(1, dist / (radR * 1.5 + 0.01));
+          const radAlpha = 1 - radInt * norm;
+          alphaMult *= Math.max(0, radAlpha);
+        }
+        data[i+3] = Math.round(data[i+3] * alphaMult);
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  } catch (e) { console.warn('applyAdvancedOpacityMask falhou', e); }
+}
+
 function renderGTAVIText(text, options = {}) {
   const {
     type = 'logo', // 'logo' (Brother 1816) ou 'normal' (GTA Art Deco / Pricedown)
@@ -17,7 +73,10 @@ function renderGTAVIText(text, options = {}) {
     fontFamily = 'GTA Art Deco Medium',
     fontColor = '#ffffff',
     shadowIntensity = 50, // 0 = sem sombra, 100 = sombra máxima
-    glowIntensity = 0     // 0 = sem glow, 100 = glow máximo
+    glowIntensity = 0,     // 0 = sem glow, 100 = glow máximo
+    cornersEnabled = false, cornerTL = 100, cornerTR = 100, cornerBL = 100, cornerBR = 100,
+    linearEnabled = false, linearIntensity = 0, linearAngle = 0,
+    radialEnabled = false, radialIntensity = 0, radialRadius = 50
   } = options;
 
   const offCanvas = document.createElement('canvas');
@@ -124,6 +183,8 @@ function renderGTAVIText(text, options = {}) {
       const r = runs[i];
       ctx.fillText(r.char, startX + r.x, startY);
     }
+    // Opacidade avançada direto no offCanvas
+    applyAdvancedOpacityMask(offCanvas, { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius });
     return offCanvas;
   }
 
@@ -454,5 +515,6 @@ function renderGTAVIText(text, options = {}) {
     }
   }
 
+  applyAdvancedOpacityMask(offCanvas, { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius });
   return offCanvas;
 }
