@@ -14,11 +14,13 @@
 
 **Create official GTA VI covers, logos, and posters — no Photoshop required.**
 
-[Live Demo](#) • [Features](#features) • [Quick Start](#quick-start) • [Gallery](#gallery) • [Export](#export)
+[🎮 Live Demo](https://gta-vi-designer.onrender.com/) • [Features](#features) • [Quick Start](#quick-start) • [Gallery](#gallery) • [Export](#export)
 
 </div>
 
 ---
+
+<a name="features"></a>
 
 ## ✨ Features
 
@@ -66,6 +68,8 @@
 
 ---
 
+<a name="preview"></a>
+
 ## 🎮 Preview
 
 > Open `index.html` and hit **`G`** for Gallery or **`PROJ`** (toolbar bottom) for Projects.
@@ -81,6 +85,8 @@ Status  ← 1920×1080 | Layers: 3 | Zoom: - 100% + FIT  (now in status bar, not
 ```
 
 ---
+
+<a name="quick-start"></a>
 
 ## 🚀 Quick Start
 
@@ -109,6 +115,8 @@ Then open `http://localhost:8000` or `http://localhost:3000`.
 
 ---
 
+<a name="usage"></a>
+
 ## 🎛️ Usage
 
 | Action | How |
@@ -124,6 +132,8 @@ Then open `http://localhost:8000` or `http://localhost:3000`.
 | **Shortcuts** | `V`=Select, `T`=Logo, `Del`=Delete, `Ctrl+Z`/`Ctrl+Y`, `G`=Gallery, `Ctrl+S`=Save project |
 
 ---
+
+<a name="project-structure"></a>
 
 ## 🗂️ Project Structure
 
@@ -151,6 +161,8 @@ Then open `http://localhost:8000` or `http://localhost:3000`.
 
 ---
 
+<a name="gallery"></a>
+
 ## 📸 Gallery & Assets
 
 - **Backgrounds:** Jason & Lucia, Vice City, Port Gellhorn, Ambrosia, Grassrivers, Leonida Keys, Mt. Kalaga + character BGs
@@ -160,6 +172,8 @@ Then open `http://localhost:8000` or `http://localhost:3000`.
 All images lazy-loaded; thumbnails use `object-fit:cover` with Rockstar cards.
 
 ---
+
+<a name="projects"></a>
 
 ## 💾 Projects — How saving works
 
@@ -182,6 +196,8 @@ Order is preserved via **slot array** (`new Array(n)`) — async `fabric.Image.f
 
 ---
 
+<a name="export"></a>
+
 ## 📤 Export & CORS Gotcha
 
 - **Why `file://` fails:** Chrome treats each `file://` as unique origin. Any external `file://` image taints the canvas → `toDataURL` throws `SecurityError`.
@@ -193,6 +209,8 @@ Order is preserved via **slot array** (`new Array(n)`) — async `fabric.Image.f
 > **Tip:** Always serve over HTTP for full-res export.
 
 ---
+
+<a name="shortcuts"></a>
 
 ## ⌨️ Shortcuts
 
@@ -209,6 +227,8 @@ Arrows           Nudge 2px (Shift = 15px)
 
 ---
 
+<a name="tech-stack"></a>
+
 ## 🛠️ Tech Stack
 
 - **Fabric.js** (canvas) — object model, selection, serialization
@@ -217,6 +237,8 @@ Arrows           Nudge 2px (Shift = 15px)
 - **localStorage** for projects, `Blob` for JSON import/export
 
 ---
+
+<a name="contributing"></a>
 
 ## 🤝 Contributing
 
@@ -230,6 +252,8 @@ git push origin feat/my-feature
 ```
 
 ---
+
+<a name="license"></a>
 
 ## 📄 License
 
