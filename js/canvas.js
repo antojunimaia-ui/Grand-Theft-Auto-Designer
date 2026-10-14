@@ -144,6 +144,27 @@ function rerenderAllElements() {
   });
 }
 
+// Rebake de nitidez: converte a escala aplicada pela alça em fontSize real.
+// Texto é vetor re-renderizado — sem isso, esticar pela alça só amplia o bitmap e embaça.
+function bakeTextScale(obj) {
+  if (!obj || typeof obj._gtaText !== 'string') return false;
+  const sx = obj.scaleX || 1, sy = obj.scaleY || 1;
+  if (Math.abs(sx - 1) < 0.001 && Math.abs(sy - 1) < 0.001) return false;
+  const newSize = Math.max(20, Math.min(2000, Math.round((obj._gtaFontSize || 260) * sx)));
+  obj._gtaFontSize = newSize;
+  obj.set({ scaleX: 1, scaleY: sy / sx });
+  obj.setCoords();
+  updateGTAVIElement(obj);
+  const sizeEl = document.getElementById('prop-size');
+  if (sizeEl) {
+    if (newSize > parseInt(sizeEl.max || '600', 10)) sizeEl.max = String(newSize);
+    sizeEl.value = newSize;
+    const sizeVal = document.getElementById('prop-size-val');
+    if (sizeVal) sizeVal.textContent = newSize;
+  }
+  return true;
+}
+
 // Helper para resolver src evitando tainted canvas: tenta usar CHAR_DATA (base64) por basename
 function resolveCharSrc(file) {
   if (typeof CHAR_DATA === 'undefined') return file;

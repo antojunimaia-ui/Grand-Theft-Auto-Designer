@@ -281,7 +281,14 @@ function initUIEvents() {
   canvas.on('selection:created', syncActive);
   canvas.on('selection:updated', syncActive);
   canvas.on('selection:cleared', () => syncPanel(null));
-  canvas.on('object:modified', () => { syncActive(); pushHistory(); if (canvas.getObjects().some(o=>o._isOpacityMask) && typeof applyOpacityMasks === 'function') applyOpacityMasks(); });
+  canvas.on('object:modified', (e) => {
+    // Assimila escala da alça em fontSize real antes de salvar histórico (mantém nitidez)
+    const t = e && e.target;
+    const targets = (t && t.type === 'activeSelection' && typeof t.getObjects === 'function') ? t.getObjects() : [canvas.getActiveObject()];
+    (targets || []).forEach(o => { if (o && typeof bakeTextScale === 'function') bakeTextScale(o); });
+    if (t && t.type === 'activeSelection') t.setCoords();
+    syncActive(); pushHistory(); if (canvas.getObjects().some(o=>o._isOpacityMask) && typeof applyOpacityMasks === 'function') applyOpacityMasks();
+  });
   canvas.on('object:moving', () => { if (canvas.getObjects().some(o=>o._isOpacityMask) && typeof applyOpacityMasks === 'function') { clearTimeout(window._maskMoveTimer); window._maskMoveTimer = setTimeout(applyOpacityMasks, 30); } });
 
   // Handlers de Mudança nas Propriedades
