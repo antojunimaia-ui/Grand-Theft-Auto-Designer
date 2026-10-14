@@ -92,7 +92,9 @@ function renderGTAVIText(text, options = {}) {
   ctx.textAlign = 'left';
 
   // Se o texto for vazio, desenha uma caixa mínima de seleção transparente para o Fabric.js não quebrar
-  const safeText = (text !== undefined && text !== null) ? String(text) : '';
+  // Vice City .otf é demo: dígitos disparam o watermark, então remove 0-9 nessa fonte
+  let safeText = (text !== undefined && text !== null) ? String(text) : '';
+  if (isNormalText && fontFamily === 'Vice City') safeText = safeText.replace(/[0-9]/g, '');
   const displayText = isNormalText ? safeText : safeText.toUpperCase();
 
   if (displayText.trim() === '') {

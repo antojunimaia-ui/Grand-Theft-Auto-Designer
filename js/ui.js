@@ -287,7 +287,14 @@ function initUIEvents() {
   // Handlers de Mudança nas Propriedades
   document.getElementById('prop-text').oninput = e => {
     const obj = getActiveGTAObj(); if (!obj) return;
-    obj._gtaText = e.target.value;
+    let v = e.target.value;
+    // Vice City .otf é demo: dígitos disparam watermark
+    if (obj._gtaType === 'normal' && obj._gtaFontFamily === 'Vice City' && /[0-9]/.test(v)) {
+      v = v.replace(/[0-9]/g, '');
+      e.target.value = v;
+      toast('Vice City não suporta números (fonte demo)');
+    }
+    obj._gtaText = v;
     obj._gtaLabel = (obj._gtaType === 'normal' ? 'Subtítulo: ' : 'Logo: ') + (obj._gtaText || '(vazio)');
     updateGTAVIElement(obj);
     updateLayerList();
@@ -313,6 +320,11 @@ function initUIEvents() {
   document.getElementById('prop-font-variant').onchange = e => {
     const obj = getActiveGTAObj(); if (!obj) return;
     obj._gtaFontFamily = e.target.value;
+    if (obj._gtaType === 'normal' && obj._gtaFontFamily === 'Vice City' && /[0-9]/.test(obj._gtaText || '')) {
+      obj._gtaText = (obj._gtaText || '').replace(/[0-9]/g, '');
+      document.getElementById('prop-text').value = obj._gtaText;
+      toast('Números removidos: Vice City não suporta dígitos (fonte demo)');
+    }
     updateGTAVIElement(obj);
   };
 

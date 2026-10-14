@@ -34,7 +34,7 @@ function loadAssets() {
   fPricedown.load().then(f => { document.fonts.add(f); rerenderAllElements(); }).catch(e => console.warn(e));
 
   // 4. Fonte Clássica Vice City
-  const fViceCity = new FontFace('Vice City', `url('Fonts/Vice City.ttf')`);
+  const fViceCity = new FontFace('Vice City', `url('Fonts/Vice City.otf')`);
   fViceCity.load().then(f => { document.fonts.add(f); rerenderAllElements(); }).catch(e => console.warn(e));
 
   // Imagens das palmeiras (usa Base64 para prevenir tainted canvas no protocolo file://)

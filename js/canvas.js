@@ -44,6 +44,8 @@ function applyZoom() {
 // CRIAÇÃO DE ELEMENTOS TIPOGRÁFICOS DO GTA VI
 function createGTAVIElement(text = 'LUCIA', opts = {}) {
   const isNormal = opts.type === 'normal';
+  // Vice City .otf é demo: bloqueia dígitos (disparam watermark)
+  if (isNormal && (opts.fontFamily || 'GTA Art Deco Medium') === 'Vice City' && typeof text === 'string') text = text.replace(/[0-9]/g, '');
   const renderedCanvas = renderGTAVIText(text, {
     type: opts.type || 'logo',
     style: opts.style || 'colorful',
