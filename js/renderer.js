@@ -110,7 +110,8 @@ function renderGTAVIText(text, options = {}) {
 
   // RENDERIZAÇÃO DE TEXTO NORMAL (GTA ART DECO / PRICEDOWN)
   if (isNormalText) {
-    const pad = Math.round(fontSize * 0.2);
+    const isViceCityPad = fontFamily === 'Vice City';
+    const pad = Math.round(fontSize * (isViceCityPad ? 0.35 : 0.2));
     ctx.font = letterFont;
     
     // Medição letra a letra com spacing
@@ -162,26 +163,69 @@ function renderGTAVIText(text, options = {}) {
       ctx.restore();
     }
 
-    // Sombra direcional
-    if (shadowIntensity > 0) {
-      const sBlur  = Math.round(fontSize * 0.1 * (shadowIntensity / 100));
-      const sAlpha = 0.3 + 0.6 * (shadowIntensity / 100);
-      const sOff   = Math.round(fontSize * 0.04 * (shadowIntensity / 100));
-      ctx.shadowColor = `rgba(0, 0, 0, ${sAlpha})`;
-      ctx.shadowBlur = sBlur;
-      ctx.shadowOffsetX = sOff;
-      ctx.shadowOffsetY = sOff;
-    } else {
+    const isViceCity = fontFamily === 'Vice City';
+    const VICE_PINK = '#f175b5';
+
+    if (isViceCity) {
+      // Estilo Vice City: miolo claro + contorno grosso rosa + sombra dura preta deslocada
+      const strokeW = Math.max(2, Math.round(fontSize * 0.16));
+      const shOff = Math.round(fontSize * 0.06);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      if (shadowIntensity > 0) {
+        const sAlpha = 0.4 + 0.6 * (shadowIntensity / 100);
+        ctx.save();
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.lineWidth = strokeW;
+        ctx.strokeStyle = `rgba(0, 0, 0, ${sAlpha})`;
+        ctx.fillStyle = `rgba(0, 0, 0, ${sAlpha})`;
+        for (let i = 0; i < runs.length; i++) {
+          ctx.strokeText(runs[i].char, startX + runs[i].x + shOff, startY + shOff);
+          ctx.fillText(runs[i].char, startX + runs[i].x + shOff, startY + shOff);
+        }
+        ctx.restore();
+      }
+      // Contorno grosso rosa
+      ctx.save();
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-    }
+      ctx.lineWidth = strokeW;
+      ctx.strokeStyle = VICE_PINK;
+      for (let i = 0; i < runs.length; i++) ctx.strokeText(runs[i].char, startX + runs[i].x, startY);
+      ctx.restore();
+      // Preenchimento (cor do picker, padrão branco)
+      ctx.save();
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = fontColor || '#ffffff';
+      for (let i = 0; i < runs.length; i++) ctx.fillText(runs[i].char, startX + runs[i].x, startY);
+      ctx.restore();
+    } else {
+      // Sombra direcional
+      if (shadowIntensity > 0) {
+        const sBlur  = Math.round(fontSize * 0.1 * (shadowIntensity / 100));
+        const sAlpha = 0.3 + 0.6 * (shadowIntensity / 100);
+        const sOff   = Math.round(fontSize * 0.04 * (shadowIntensity / 100));
+        ctx.shadowColor = `rgba(0, 0, 0, ${sAlpha})`;
+        ctx.shadowBlur = sBlur;
+        ctx.shadowOffsetX = sOff;
+        ctx.shadowOffsetY = sOff;
+      } else {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
 
-    ctx.fillStyle = fontColor || '#ffffff';
-    for (let i = 0; i < runs.length; i++) {
-      const r = runs[i];
-      ctx.fillText(r.char, startX + r.x, startY);
+      ctx.fillStyle = fontColor || '#ffffff';
+      for (let i = 0; i < runs.length; i++) {
+        const r = runs[i];
+        ctx.fillText(r.char, startX + r.x, startY);
+      }
     }
     // Opacidade avançada direto no offCanvas
     applyAdvancedOpacityMask(offCanvas, { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius });
