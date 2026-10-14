@@ -6,6 +6,40 @@ let palmColorImg = null;
 let palmMonoImg = null;
 let fontLoaded = false;
 
+// Remove bordas 100% transparentes para a caixa de seleção colar no desenho
+function trimTransparentCanvas(src, margin = 3) {
+  if (!src || !src.width || !src.height) return src;
+  const sCtx = src.getContext('2d');
+  if (!sCtx) return src;
+  const w = src.width, h = src.height;
+  let img;
+  try { img = sCtx.getImageData(0, 0, w, h); } catch { return src; }
+  const d = img.data;
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] > 5) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return src;
+  minX = Math.max(0, minX - margin);
+  minY = Math.max(0, minY - margin);
+  maxX = Math.min(w - 1, maxX + margin);
+  maxY = Math.min(h - 1, maxY + margin);
+  const cw = maxX - minX + 1, ch = maxY - minY + 1;
+  if (cw >= w && ch >= h) return src;
+  const out = document.createElement('canvas');
+  out.width = cw;
+  out.height = ch;
+  out.getContext('2d').drawImage(src, minX, minY, cw, ch, 0, 0, cw, ch);
+  return out;
+}
+
 function applyAdvancedOpacityMask(targetCanvas, opts) {
   const { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius } = opts;
   const enabled = cornersEnabled || linearEnabled || radialEnabled;
@@ -231,7 +265,7 @@ function renderGTAVIText(text, options = {}) {
     }
     // Opacidade avançada direto no offCanvas
     applyAdvancedOpacityMask(offCanvas, { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius });
-    return offCanvas;
+    return trimTransparentCanvas(offCanvas, 3);
   }
 
   // RENDERIZAÇÃO DE LOGO COMPLETO (BROTHER 1816 COM SHADERS DO GTA VI)
@@ -562,5 +596,5 @@ function renderGTAVIText(text, options = {}) {
   }
 
   applyAdvancedOpacityMask(offCanvas, { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius });
-  return offCanvas;
+  return trimTransparentCanvas(offCanvas, 3);
 }
