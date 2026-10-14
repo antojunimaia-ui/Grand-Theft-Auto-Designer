@@ -56,6 +56,8 @@ function pushHistory() {
       style: o._gtaStyle,
       coverArt: o._gtaCoverArt,
       palmTree: o._gtaPalmTree,
+      palmOffsetX: o._gtaPalmOffsetX ?? 0,
+      palmOffsetY: o._gtaPalmOffsetY ?? 0,
       fontSize: o._gtaFontSize,
       letterSpacing: o._gtaLetterSpacing,
       fontFamily: o._gtaFontFamily,
@@ -194,6 +196,7 @@ function restoreHistory(json) {
     } else {
       const el = createGTAVIElement(item.text, {
         type: item.type, style: item.style, coverArt: item.coverArt, palmTree: item.palmTree,
+        palmOffsetX: item.palmOffsetX ?? 0, palmOffsetY: item.palmOffsetY ?? 0,
         fontSize: item.fontSize, letterSpacing: item.letterSpacing, fontFamily: item.fontFamily, fontColor: item.fontColor,
         shadowIntensity: item.shadowIntensity, glowIntensity: item.glowIntensity,
         cornersEnabled: item.cornersEnabled, cornerTL: item.cornerTL, cornerTR: item.cornerTR, cornerBL: item.cornerBL, cornerBR: item.cornerBR,

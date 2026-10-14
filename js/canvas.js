@@ -51,6 +51,8 @@ function createGTAVIElement(text = 'LUCIA', opts = {}) {
     style: opts.style || 'colorful',
     coverArt: opts.coverArt !== false,
     palmTree: opts.palmTree !== false,
+    palmOffsetX: opts.palmOffsetX ?? 0,
+    palmOffsetY: opts.palmOffsetY ?? 0,
     fontSize: opts.fontSize || (isNormal ? 72 : 260),
     letterSpacing: opts.letterSpacing !== undefined ? opts.letterSpacing : 0,
     fontFamily: opts.fontFamily || 'GTA Art Deco Medium',
@@ -84,6 +86,8 @@ function createGTAVIElement(text = 'LUCIA', opts = {}) {
   imgObj._gtaStyle = opts.style || 'colorful';
   imgObj._gtaCoverArt = opts.coverArt !== false;
   imgObj._gtaPalmTree = opts.palmTree !== false;
+  imgObj._gtaPalmOffsetX = opts.palmOffsetX ?? 0;
+  imgObj._gtaPalmOffsetY = opts.palmOffsetY ?? 0;
   imgObj._gtaFontSize = opts.fontSize || (isNormal ? 72 : 260);
   imgObj._gtaLetterSpacing = opts.letterSpacing !== undefined ? opts.letterSpacing : 0;
   imgObj._gtaFontFamily = opts.fontFamily || 'GTA Art Deco Medium';
@@ -113,6 +117,8 @@ function updateGTAVIElement(obj) {
     style: obj._gtaStyle,
     coverArt: obj._gtaCoverArt,
     palmTree: obj._gtaPalmTree,
+    palmOffsetX: obj._gtaPalmOffsetX ?? 0,
+    palmOffsetY: obj._gtaPalmOffsetY ?? 0,
     fontSize: obj._gtaFontSize,
     letterSpacing: obj._gtaLetterSpacing || 0,
     fontFamily: obj._gtaFontFamily || 'GTA Art Deco Medium',

@@ -40,6 +40,36 @@ function trimTransparentCanvas(src, margin = 3) {
   return out;
 }
 
+// Tile da palmeira escalado junto com a fonte (REF = tamanho padrão do logo).
+// Como pad e métricas dos glifos também escalam linearmente com fontSize,
+// a fase da textura em relação às letras fica constante: a palmeira cresce
+// junto e não "anda" ao redimensionar.
+const PALM_REF_SIZE = 260;function makeScaledPalmTile(img, fontSize) {
+  if (!img || !img.width || !img.height) return null;
+  const s = fontSize / PALM_REF_SIZE;
+  const tw = Math.max(1, Math.round(img.width * s));
+  const th = Math.max(1, Math.round(img.height * s));
+  const tile = document.createElement('canvas');
+  tile.width = tw;
+  tile.height = th;
+  const tCtx = tile.getContext('2d');
+  if (!tCtx) return null;
+  tCtx.drawImage(img, 0, 0, tw, th);
+  return tile;
+}
+
+// Desloca a fase do pattern (sliders -100..100 = ±1 tile, com wrap do repeat).
+// 0/0 = posição padrão.
+function shiftPalmPattern(pattern, tile, ox, oy) {
+  if (!pattern || !tile) return;
+  const dx = ((ox || 0) / 100) * tile.width;
+  const dy = ((oy || 0) / 100) * tile.height;
+  if (!dx && !dy) return;
+  try {
+    if (typeof pattern.setTransform === 'function') pattern.setTransform(new DOMMatrix().translate(dx, dy));
+  } catch {}
+}
+
 function applyAdvancedOpacityMask(targetCanvas, opts) {
   const { cornersEnabled, cornerTL, cornerTR, cornerBL, cornerBR, linearEnabled, linearIntensity, linearAngle, radialEnabled, radialIntensity, radialRadius } = opts;
   const enabled = cornersEnabled || linearEnabled || radialEnabled;
@@ -102,6 +132,8 @@ function renderGTAVIText(text, options = {}) {
     style = 'colorful', // 'colorful', 'mono' ou 'outline'
     coverArt = true,
     palmTree = true,
+    palmOffsetX = 0, // -100..100 (% do tile, 0 = posição padrão)
+    palmOffsetY = 0, // -100..100 (% do tile, 0 = posição padrão)
     fontSize = 260,
     letterSpacing = 0,
     fontFamily = 'GTA Art Deco Medium',
@@ -405,8 +437,10 @@ function renderGTAVIText(text, options = {}) {
         mCtx.fillStyle = '#fff';
         drawTextRuns(mCtx, 'fill');
 
-        const pattern = pCtx.createPattern(palmColorImg, 'repeat-x');
+        const palmTile = makeScaledPalmTile(palmColorImg, fontSize);
+        const pattern = palmTile && pCtx.createPattern(palmTile, 'repeat');
         if (pattern) {
+          shiftPalmPattern(pattern, palmTile, palmOffsetX, palmOffsetY);
           pCtx.save();
           pCtx.fillStyle = pattern;
           pCtx.fillRect(0, topY, width, capHeight + descent);
@@ -496,8 +530,10 @@ function renderGTAVIText(text, options = {}) {
       const pCtx = palmCanvas.getContext('2d');
 
       if (pCtx) {
-        const pattern = pCtx.createPattern(palmMonoImg, 'repeat-x');
+        const palmTile = makeScaledPalmTile(palmMonoImg, fontSize);
+        const pattern = palmTile && pCtx.createPattern(palmTile, 'repeat');
         if (pattern) {
+          shiftPalmPattern(pattern, palmTile, palmOffsetX, palmOffsetY);
           pCtx.save();
           pCtx.fillStyle = pattern;
           pCtx.fillRect(0, topY, width, capHeight + descent);

@@ -70,6 +70,14 @@ function syncPanel(obj) {
       document.getElementById('toggle-palm-tree').classList.toggle('active', !!obj._gtaPalmTree);
       document.getElementById('row-palm-tree').style.opacity = obj._gtaStyle === 'mono' ? '1' : '0.3';
       document.getElementById('row-palm-tree').style.pointerEvents = obj._gtaStyle === 'mono' ? '' : 'none';
+      const px = obj._gtaPalmOffsetX ?? 0, py = obj._gtaPalmOffsetY ?? 0;
+      document.getElementById('prop-palm-x').value = px;
+      document.getElementById('prop-palm-x-val').textContent = px;
+      document.getElementById('prop-palm-y').value = py;
+      document.getElementById('prop-palm-y-val').textContent = py;
+      const palmActive = obj._gtaStyle !== 'outline' && !!obj._gtaPalmTree;
+      const offRow = document.getElementById('row-palm-offset');
+      if (offRow) { offRow.style.opacity = palmActive ? '1' : '0.3'; offRow.style.pointerEvents = palmActive ? '' : 'none'; }
     }
   }
 
@@ -415,7 +423,24 @@ function initUIEvents() {
     obj._gtaPalmTree = !obj._gtaPalmTree;
     this.classList.toggle('active', obj._gtaPalmTree);
     updateGTAVIElement(obj);
+    syncPanel(obj);
     pushHistory();
+  };
+
+  document.getElementById('prop-palm-x').oninput = e => {
+    const obj = getActiveGTAObj(); if (!obj || typeof obj._gtaText !== 'string') return;
+    const v = parseInt(e.target.value);
+    document.getElementById('prop-palm-x-val').textContent = v;
+    obj._gtaPalmOffsetX = v;
+    updateGTAVIElement(obj);
+  };
+
+  document.getElementById('prop-palm-y').oninput = e => {
+    const obj = getActiveGTAObj(); if (!obj || typeof obj._gtaText !== 'string') return;
+    const v = parseInt(e.target.value);
+    document.getElementById('prop-palm-y-val').textContent = v;
+    obj._gtaPalmOffsetY = v;
+    updateGTAVIElement(obj);
   };
 
   // Ações de Posição & Camadas

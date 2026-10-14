@@ -72,6 +72,8 @@ function serializeCanvasObjects() {
       style: o._gtaStyle,
       coverArt: o._gtaCoverArt,
       palmTree: o._gtaPalmTree,
+      palmOffsetX: o._gtaPalmOffsetX ?? 0,
+      palmOffsetY: o._gtaPalmOffsetY ?? 0,
       fontSize: o._gtaFontSize,
       letterSpacing: o._gtaLetterSpacing,
       fontFamily: o._gtaFontFamily,
@@ -428,6 +430,8 @@ function restoreProjectData(proj) {
           style: item.style || 'colorful',
           coverArt: item.coverArt !== false,
           palmTree: item.palmTree !== false,
+          palmOffsetX: item.palmOffsetX ?? 0,
+          palmOffsetY: item.palmOffsetY ?? 0,
           fontSize: item.fontSize || 220,
           letterSpacing: item.letterSpacing || 0,
           fontFamily: item.fontFamily || 'GTA Art Deco Medium',
@@ -449,6 +453,8 @@ function restoreProjectData(proj) {
         imgObj._gtaStyle = item.style || 'colorful';
         imgObj._gtaCoverArt = item.coverArt !== false;
         imgObj._gtaPalmTree = item.palmTree !== false;
+        imgObj._gtaPalmOffsetX = item.palmOffsetX ?? 0;
+        imgObj._gtaPalmOffsetY = item.palmOffsetY ?? 0;
         imgObj._gtaFontSize = item.fontSize || 220;
         imgObj._gtaLetterSpacing = item.letterSpacing || 0;
         imgObj._gtaFontFamily = item.fontFamily || 'GTA Art Deco Medium';
@@ -582,6 +588,8 @@ function renderMiniPreview(proj, canvasId) {
             style: item.style || 'colorful',
             coverArt: item.coverArt !== false,
             palmTree: item.palmTree !== false,
+            palmOffsetX: item.palmOffsetX ?? 0,
+            palmOffsetY: item.palmOffsetY ?? 0,
             fontSize: (item.fontSize || 220) * factor,
             letterSpacing: item.letterSpacing || 0,
             fontFamily: item.fontFamily || 'GTA Art Deco Medium',
