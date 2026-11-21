@@ -20,79 +20,6 @@ function setProjects(arr) {
   localStorage.setItem(PROJECTS_LS_KEY, JSON.stringify(arr));
 }
 
-function serializeCanvasObjects() {
-  // Mesmo formato do history.js + preservação da ordem (bottom -> top)
-  const objs = canvas.getObjects().filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset || o._isOpacityMask);
-  return objs.map(o => {
-    if (o._isOpacityMask) {
-      return {
-        _isOpacityMask: true,
-        id: o._opacityMaskId,
-        label: o._label,
-        isLine: !!o._isOpacityLine,
-        points: o.get('points') ? o.get('points').map(p => ({ x: p.x, y: p.y })) : [],
-        x1: o.x1, y1: o.y1, x2: o.x2, y2: o.y2,
-        left: o.left, top: o.top, angle: o.angle, scaleX: o.scaleX, scaleY: o.scaleY, opacity: o.opacity,
-        opacityLevel: o._opacityLevel ?? 50, fade: o._fade ?? 40,
-        targetIds: Array.isArray(o._targetIds) ? o._targetIds.slice() : []
-      };
-    }
-    if (o._isAsset) {
-      return {
-        _isAsset: true,
-        file: o._assetFile,
-        key: o._assetKey,
-        label: o._assetLabel,
-        left: o.left,
-        top: o.top,
-        angle: o.angle,
-        scaleX: o.scaleX,
-        scaleY: o.scaleY,
-        opacity: o.opacity
-      };
-    }
-    if (o._isChar) {
-      return {
-        _isChar: true,
-        file: o._charFile,
-        key: o._charKey,
-        label: o._charLabel,
-        left: o.left,
-        top: o.top,
-        angle: o.angle,
-        scaleX: o.scaleX,
-        scaleY: o.scaleY,
-        opacity: o.opacity
-      };
-    }
-    return {
-      _isGTA: true,
-      type: o._gtaType,
-      text: o._gtaText,
-      style: o._gtaStyle,
-      coverArt: o._gtaCoverArt,
-      palmTree: o._gtaPalmTree,
-      palmOffsetX: o._gtaPalmOffsetX ?? 0,
-      palmOffsetY: o._gtaPalmOffsetY ?? 0,
-      fontSize: o._gtaFontSize,
-      letterSpacing: o._gtaLetterSpacing,
-      fontFamily: o._gtaFontFamily,
-      fontColor: o._gtaFontColor,
-      shadowIntensity: o._gtaShadowIntensity,
-      glowIntensity: o._gtaGlowIntensity,
-      cornersEnabled: !!o._gtaCornersEnabled, cornerTL: o._gtaCornerTL ?? 100, cornerTR: o._gtaCornerTR ?? 100, cornerBL: o._gtaCornerBL ?? 100, cornerBR: o._gtaCornerBR ?? 100,
-      linearEnabled: !!o._gtaLinearEnabled, linearIntensity: o._gtaLinearIntensity ?? 0, linearAngle: o._gtaLinearAngle ?? 0,
-      radialEnabled: !!o._gtaRadialEnabled, radialIntensity: o._gtaRadialIntensity ?? 0, radialRadius: o._gtaRadialRadius ?? 50,
-      left: o.left,
-      top: o.top,
-      angle: o.angle,
-      scaleX: o.scaleX,
-      scaleY: o.scaleY,
-      opacity: o.opacity
-    };
-  });
-}
-
 function tryMakeThumbnail() {
   const tryCapture = () => {
     try {
@@ -137,17 +64,17 @@ function tryMakeThumbnail() {
 
 function buildCurrentProjectPayload(name) {
   const bg = (typeof getCurrentBackgroundKey === 'function') ? getCurrentBackgroundKey() : 'transparent';
-  const objects = serializeCanvasObjects();
   return {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     name: (name || '').trim() || `Projeto ${new Date().toLocaleString('pt-BR')}`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     background: bg,
-    objects: objects,
     canvasW: (typeof CANVAS_W !== 'undefined' ? CANVAS_W : 1920),
     canvasH: (typeof CANVAS_H !== 'undefined' ? CANVAS_H : 1080),
-    thumbnail: tryMakeThumbnail()
+    thumbnail: tryMakeThumbnail(),
+    schema: 'fabric-v1',
+    fabric: snapshotCanvasState()
   };
 }
 
@@ -233,15 +160,15 @@ function exportProjectJSON(id) {
 
 function exportCurrentProjectJSON() {
   const bg = (typeof getCurrentBackgroundKey === 'function') ? getCurrentBackgroundKey() : 'transparent';
-  const objects = serializeCanvasObjects();
   const payload = {
     id: 'export-' + Date.now(),
     name: (document.getElementById('project-name-input')?.value.trim() || 'projeto-atual'),
     createdAt: new Date().toISOString(),
     background: bg,
-    objects: objects,
     canvasW: (typeof CANVAS_W !== 'undefined' ? CANVAS_W : 1920),
-    canvasH: (typeof CANVAS_H !== 'undefined' ? CANVAS_H : 1080)
+    canvasH: (typeof CANVAS_H !== 'undefined' ? CANVAS_H : 1080),
+    schema: 'fabric-v1',
+    fabric: snapshotCanvasState()
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -273,10 +200,12 @@ function importProjectFromFile(file) {
           createdAt: item.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           background: item.background || 'transparent',
-          objects: item.objects,
           canvasW: item.canvasW || 1920,
           canvasH: item.canvasH || 1080,
-          thumbnail: item.thumbnail || null
+          thumbnail: item.thumbnail || null,
+          schema: item.schema || (item.fabric ? 'fabric-v1' : 'legacy'),
+          fabric: item.fabric || null,
+          objects: item.objects || null
         };
         list.unshift(proj);
         added++;
@@ -305,10 +234,22 @@ function loadProject(id) {
 }
 
 function restoreProjectData(proj) {
+  // Formato novo (fabric-v1): snapshot nativo do Fabric — tudo foi salvo automaticamente
+  if (proj.fabric && Array.isArray(proj.fabric.objects)) {
+    restoreCanvasState(proj.fabric, {
+      after: () => toast(`Projeto "${proj.name}" carregado!`)
+    });
+    return;
+  }
+  // Formato legado: carrega e converte para o novo formato (migração única)
+  restoreLegacyProjectData(proj);
+}
+
+function restoreLegacyProjectData(proj) {
   // Limpa seleção
   canvas.discardActiveObject();
   // Remove apenas objetos de projeto (mantém background handling separado)
-  canvas.getObjects().filter(o => typeof o._gtaText === 'string' || o._isChar || o._isAsset || o._isOpacityMask).forEach(o => canvas.remove(o));
+  canvas.getObjects().filter(isProjectObject).forEach(o => canvas.remove(o));
   canvas.requestRenderAll();
 
   // Restaura background
@@ -326,6 +267,7 @@ function restoreProjectData(proj) {
     updateStatusCount();
     syncPanel(null);
     pushHistory();
+    migrateLegacyProject(proj);
     toast(`Projeto "${proj.name}" carregado (vazio).`);
     return;
   }
@@ -358,6 +300,7 @@ function restoreProjectData(proj) {
     syncPanel(null);
     if (typeof ignoreHistory !== 'undefined') ignoreHistory = wasIgnore;
     pushHistory();
+    if (typeof migrateLegacyProject === 'function') migrateLegacyProject(proj);
     if (hasError) toast(`Projeto "${proj.name}" carregado com alguns erros de imagem.`);
     else toast(`Projeto "${proj.name}" carregado!`);
   }
@@ -473,15 +416,31 @@ function restoreProjectData(proj) {
   });
 }
 
+// Ao carregar um projeto legado, converte o canvas restaurado p/ o formato novo e re-salva na hora.
+function migrateLegacyProject(proj) {
+  try {
+    const list = getProjects();
+    const i = list.findIndex(p => p.id === proj.id);
+    if (i === -1) return;
+    let migrated;
+    try { migrated = buildCurrentProjectPayload(proj.name); } catch (_) { return; }
+    migrated.id = proj.id;
+    migrated.createdAt = proj.createdAt || migrated.createdAt;
+    migrated.thumbnail = proj.thumbnail || migrated.thumbnail;
+    list[i] = migrated;
+    setProjects(list);
+  } catch (_) {}
+}
+
 // ── UI DO MODAL ──
 
 function renderMiniPreview(proj, canvasId) {
   const el = document.getElementById(canvasId);
   if (!el) return;
-  // Usa o mesmo tamanho lógico do canvas principal, mas com zoom reduzido para caber no thumb 16/9
-  const MINI_W = 320, MINI_H = 180;
-  const factor = MINI_W / (typeof CANVAS_W !== 'undefined' ? CANVAS_W : 1920);
+  // Precisa do snapshot nativo; projetos legados mostram placeholder até serem migrados ao carregar
+  if (!proj.fabric || !Array.isArray(proj.fabric.objects)) return;
   try {
+    const MINI_W = 320, MINI_H = 180;
     const mini = new fabric.StaticCanvas(canvasId, {
       width: MINI_W,
       height: MINI_H,
@@ -489,128 +448,10 @@ function renderMiniPreview(proj, canvasId) {
       renderOnAddRemove: false,
       selection: false
     });
-    // Background igual ao main
-    const bgKey = proj.background || 'transparent';
-    if (bgKey === 'black') {
-      mini.setBackgroundColor('#000', mini.renderAll.bind(mini));
-    } else if (bgKey === 'dark') {
-      mini.setBackgroundColor('#11111A', mini.renderAll.bind(mini));
-    } else if (bgKey !== 'transparent') {
-      const bg = (typeof BG_LIST !== 'undefined') ? BG_LIST.find(b => b.key === bgKey) : null;
-      if (bg && bg.path) {
-        const opts = (typeof getFabricLoadOptions === 'function') ? getFabricLoadOptions(bg.path) : null;
-        fabric.Image.fromURL(bg.path, img => {
-          if (!img || !img.width) { mini.requestRenderAll(); return; }
-          const s = Math.max(MINI_W / img.width, MINI_H / img.height);
-          img.set({ scaleX: s, scaleY: s, left: (MINI_W - img.width * s)/2, top: (MINI_H - img.height * s)/2, selectable:false, evented:false });
-          mini.setBackgroundImage(img, mini.renderAll.bind(mini));
-        }, opts);
-      }
-    }
-    // Objetos: preserva ordem exata (bottom→top) mesmo com loads assíncronos — igual ao fix do restore
-    const objs = proj.objects || [];
-    if (!objs.length) { mini.requestRenderAll(); return; }
-    const slots = new Array(objs.length);
-    let loaded = 0;
-    function checkMiniDone() {
-      loaded++;
-      if (loaded < objs.length) return;
-      // Adiciona na ordem original para manter z-index correto
-      slots.forEach(o => { if (o) mini.add(o); });
-      // Garante ordem via moveTo
-      slots.forEach((o, idx) => { if (o) try { o.moveTo(idx); } catch {} });
+    const data = JSON.parse(JSON.stringify(proj.fabric));
+    mini.loadFromJSON(data, () => {
+      mini.setZoom(MINI_W / (typeof CANVAS_W !== 'undefined' ? CANVAS_W : 1920));
       mini.requestRenderAll();
-    }
-    objs.forEach((item, idx) => {
-      if (item._isOpacityMask) {
-        try {
-          let poly;
-          if (item.isLine) {
-            poly = new fabric.Line([item.x1 ?? 0, item.y1 ?? 0, item.x2 ?? 320*0.65, item.y2 ?? 0], {
-              left: (item.left || 0) * factor, top: (item.top || 0) * factor,
-              stroke: '#ff9aa8', strokeWidth: 3, strokeLineCap: 'round', strokeDashArray: [6,4],
-              selectable: false, evented: false, angle: item.angle || 0, scaleX: (item.scaleX||1), scaleY: (item.scaleY||1), opacity: item.opacity ?? 1
-            });
-            poly._isOpacityMask = true;
-          } else {
-            const pts = (item.points || []).map(p => ({ x: p.x * factor, y: p.y * factor }));
-            poly = new fabric.Polygon(pts, {
-              left: (item.left || 0) * factor, top: (item.top || 0) * factor,
-              fill: 'rgba(255,154,168,0.18)', stroke: '#ff9aa8', strokeWidth: 1, strokeDashArray: [4,3],
-              selectable: false, evented: false, angle: item.angle || 0, scaleX: (item.scaleX||1), scaleY: (item.scaleY||1), opacity: item.opacity ?? 1
-            });
-            poly._isOpacityMask = true;
-          }
-          slots[idx] = poly;
-        } catch { slots[idx] = null; }
-        checkMiniDone();
-      } else if (item._isAsset) {
-        const opts = (typeof getFabricLoadOptions === 'function') ? getFabricLoadOptions(item.file) : null;
-        fabric.Image.fromURL(item.file, img => {
-          if (!img || !img.width) { slots[idx] = null; checkMiniDone(); return; }
-          img.set({
-            left: (item.left || 0) * factor,
-            top: (item.top || 0) * factor,
-            originX: 'center', originY: 'center',
-            angle: item.angle || 0,
-            scaleX: (item.scaleX || 1) * factor,
-            scaleY: (item.scaleY || 1) * factor,
-            opacity: item.opacity ?? 1,
-            selectable: false, evented: false
-          });
-          img._isAsset = true;
-          slots[idx] = img;
-          checkMiniDone();
-        }, opts);
-      } else if (item._isChar) {
-        const src = (typeof resolveCharSrc === 'function') ? resolveCharSrc(item.file) : item.file;
-        const opts = (typeof getFabricLoadOptions === 'function') ? getFabricLoadOptions(src) : null;
-        fabric.Image.fromURL(src, img => {
-          if (!img || !img.width) { slots[idx] = null; checkMiniDone(); return; }
-          img.set({
-            left: (item.left || 0) * factor,
-            top: (item.top || 0) * factor,
-            originX: 'center', originY: 'center',
-            angle: item.angle || 0,
-            scaleX: (item.scaleX || 1) * factor,
-            scaleY: (item.scaleY || 1) * factor,
-            opacity: item.opacity ?? 1,
-            selectable: false, evented: false
-          });
-          img._isChar = true;
-          slots[idx] = img;
-          checkMiniDone();
-        }, opts);
-      } else {
-        try {
-          const c = renderGTAVIText(item.text || '', {
-            type: item.type || 'logo',
-            style: item.style || 'colorful',
-            coverArt: item.coverArt !== false,
-            palmTree: item.palmTree !== false,
-            palmOffsetX: item.palmOffsetX ?? 0,
-            palmOffsetY: item.palmOffsetY ?? 0,
-            fontSize: (item.fontSize || 220) * factor,
-            letterSpacing: item.letterSpacing || 0,
-            fontFamily: item.fontFamily || 'GTA Art Deco Medium',
-            fontColor: item.fontColor || '#ffffff',
-            shadowIntensity: item.shadowIntensity ?? 50,
-            glowIntensity: item.glowIntensity ?? 0
-          });
-          const imgObj = new fabric.Image(c, {
-            left: (item.left || 0) * factor,
-            top: (item.top || 0) * factor,
-            originX: 'center', originY: 'center',
-            angle: item.angle || 0,
-            scaleX: (item.scaleX || 1),
-            scaleY: (item.scaleY || 1),
-            opacity: item.opacity ?? 1,
-            selectable: false, evented: false
-          });
-          slots[idx] = imgObj;
-        } catch { slots[idx] = null; }
-        checkMiniDone();
-      }
     });
   } catch (e) { console.warn('Mini preview falhou', e); }
 }
@@ -636,9 +477,12 @@ function renderProjectsList() {
   projects.forEach(proj => {
     const card = document.createElement('div');
     card.className = 'project-card';
-    // Miniatura VIVA: renderiza as artes reais numa mini Fabric canvas (não depende de toDataURL/tainted)
+    const hasFabric = proj.fabric && Array.isArray(proj.fabric.objects);
+    // Miniatura VIVA: reproduz o snapshot nativo numa mini Fabric canvas (não depende de toDataURL/tainted)
     const thumbId = 'proj-thumb-' + proj.id;
-    const thumb = `<div class="project-thumb--canvas"><canvas id="${thumbId}" width="320" height="180"></canvas></div>`;
+    const thumb = hasFabric
+      ? `<div class="project-thumb--canvas"><canvas id="${thumbId}" width="320" height="180"></canvas></div>`
+      : `<div class="project-thumb--canvas" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:10px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Projeto antigo — carregue para converter</div>`;
     const bgLabel = (() => {
       if (!proj.background || proj.background === 'transparent') return 'Transparente';
       if (proj.background === 'black') return 'Preto';
@@ -646,7 +490,7 @@ function renderProjectsList() {
       const bg = (typeof BG_LIST !== 'undefined') ? BG_LIST.find(b => b.key === proj.background) : null;
       return bg ? bg.label : proj.background;
     })();
-    const layers = proj.objects ? proj.objects.length : 0;
+    const layers = hasFabric ? proj.fabric.objects.length : (proj.objects ? proj.objects.length : 0);
     card.innerHTML = `
       <div class="project-card-main">
         ${thumb}
@@ -701,7 +545,7 @@ function initProjectsModal() {
   document.getElementById('btn-save-project')?.addEventListener('click', () => {
     const input = document.getElementById('project-name-input');
     const name = input ? input.value.trim() : '';
-    const objs = serializeCanvasObjects();
+    const objs = canvas.getObjects().filter(isProjectObject);
     if (!objs.length && (typeof getCurrentBackgroundKey === 'function' ? getCurrentBackgroundKey() : 'transparent') === 'transparent') {
       if (!confirm('Canvas vazio. Salvar mesmo assim?')) return;
     }

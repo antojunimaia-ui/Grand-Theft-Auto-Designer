@@ -19,6 +19,26 @@ const KERNING_MAP = {
   IT: -10, TI: -10
 };
 
+// Props custom que o Fabric deve incluir na serialização nativa (canvas.toJSON).
+// Assim NÃO precisamos codar a mão o que salvar: tudo que o app usa vira parte do JSON.
+const GTA_SERIALIZED_PROPS = [
+  // Texto GTA (logo / subtítulo)
+  '_gtaType', '_gtaText', '_gtaStyle', '_gtaCoverArt', '_gtaPalmTree',
+  '_gtaPalmOffsetX', '_gtaPalmOffsetY', '_gtaFontSize', '_gtaLetterSpacing',
+  '_gtaFontFamily', '_gtaFontColor', '_gtaShadowIntensity', '_gtaGlowIntensity',
+  '_gtaCornersEnabled', '_gtaCornerTL', '_gtaCornerTR', '_gtaCornerBL', '_gtaCornerBR',
+  '_gtaLinearEnabled', '_gtaLinearIntensity', '_gtaLinearAngle',
+  '_gtaRadialEnabled', '_gtaRadialIntensity', '_gtaRadialRadius',
+  '_gtaId', '_gtaLabel',
+  // Personagens
+  '_isChar', '_charKey', '_charLabel', '_charFile',
+  // Assets (palmeiras)
+  '_isAsset', '_assetKey', '_assetLabel', '_assetFile',
+  // Opacitador (linha / polígono)
+  '_isOpacityMask', '_isOpacityLine', '_opacityMaskId', '_label',
+  '_opacityLevel', '_fade', '_targetIds'
+];
+
 // Gradientes Oficiais Extraídos da Identidade Visual do GTA VI
 const GRADIENT_COLORFUL = [
   { stop: 1, color: '#FF964C' },

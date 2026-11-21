@@ -570,9 +570,9 @@ function addAssetToCanvas(asset) {
 function setBackground(key) {
   currentBackgroundKey = key || 'transparent';
   canvas.setBackgroundImage(null, () => {});
-  if (key === 'transparent') { canvas.setBackgroundColor('', () => canvas.requestRenderAll()); return; }
-  if (key === 'black') { canvas.setBackgroundColor('#000', () => canvas.requestRenderAll()); return; }
-  if (key === 'dark') { canvas.setBackgroundColor('#11111A', () => canvas.requestRenderAll()); return; }
+  if (key === 'transparent') { canvas.setBackgroundColor('', () => { canvas.requestRenderAll(); pushHistory(); }); return; }
+  if (key === 'black') { canvas.setBackgroundColor('#000', () => { canvas.requestRenderAll(); pushHistory(); }); return; }
+  if (key === 'dark') { canvas.setBackgroundColor('#11111A', () => { canvas.requestRenderAll(); pushHistory(); }); return; }
   const bg = BG_LIST.find(b => b.key === key);
   if (!bg) return;
   canvas.setBackgroundColor('', () => {});
@@ -580,7 +580,7 @@ function setBackground(key) {
     if (!img || !img.width || !img.height) { console.error('Background falhou', bg.path); return; }
     const sx = CANVAS_W / img.width, sy = CANVAS_H / img.height, s = Math.max(sx, sy);
     img.set({ scaleX: s, scaleY: s, left: (CANVAS_W - img.width * s) / 2, top: (CANVAS_H - img.height * s) / 2, selectable: false, evented: false });
-    canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+    canvas.setBackgroundImage(img, () => { canvas.renderAll(); pushHistory(); });
   }, getFabricLoadOptions(bg.path));
 }
 
@@ -818,4 +818,68 @@ function exportPDF() {
       toast('Erro ao gerar PDF: ' + (err.message || err));
     }
   }
+}
+
+// ──────────────────────────────────────────────────────────
+// SERIALIZAÇÃO NATIVA (FABRIC) — snapshot/restore completos
+// ──────────────────────────────────────────────────────────
+
+function isProjectObject(o) {
+  return !!o && (typeof o._gtaText === 'string' || o._isChar || o._isAsset || o._isOpacityMask);
+}
+
+// Captura o canvas INTEIRO (objetos + background + props custom) via Fabric nativo.
+function snapshotCanvasState() {
+  const s = canvas.toJSON(GTA_SERIALIZED_PROPS);
+  // Não deixa o JSON definir dimensões do artboard (zoom/fit são do app)
+  delete s.width;
+  delete s.height;
+  return s;
+}
+
+// Re-sincroniza currentBackgroundKey e os thumbs de background após um loadFromJSON.
+function syncBackgroundKeyFromCanvas() {
+  let key = 'transparent';
+  const bgImg = canvas.backgroundImage;
+  if (bgImg) {
+    let src = '';
+    try { src = typeof bgImg.getSrc === 'function' ? (bgImg.getSrc() || '') : ''; } catch (_) {}
+    const found = BG_LIST.find(b => b.path && src.indexOf(b.path) !== -1);
+    if (found) key = found.key;
+  } else {
+    let c = '';
+    try { c = String(canvas.getBackgroundColor()).toLowerCase(); } catch (_) {}
+    if (c === '#000' || c === 'black' || c === 'rgb(0, 0, 0)' || c === 'rgba(0, 0, 0, 1)') key = 'black';
+    else if (c === '#11111a' || c === 'rgb(17, 17, 26)' || c === 'rgba(17, 17, 26, 1)') key = 'dark';
+  }
+  currentBackgroundKey = key;
+  document.querySelectorAll('.bg-thumb').forEach(x => x.classList.toggle('active', x.dataset.bg === key));
+}
+
+// Restaura um snapshot (string ou objeto) gerado por snapshotCanvasState().
+function restoreCanvasState(state, opts = {}) {
+  const data = typeof state === 'string' ? JSON.parse(state) : state;
+  if (!data || !Array.isArray(data.objects)) return;
+  ignoreHistory = true;
+  canvas.discardActiveObject();
+  canvas.getObjects().filter(isProjectObject).forEach(o => canvas.remove(o));
+
+  delete data.width;
+  delete data.height;
+
+  canvas.loadFromJSON(data, () => {
+    // Re-sincroniza contadores de id p/ evitar colisões em novos objetos
+    canvas.getObjects().forEach(o => {
+      if (o._gtaId && o._gtaId > objCounter) objCounter = o._gtaId;
+      if (o._opacityMaskId && o._opacityMaskId > opacityMaskIdCounter) opacityMaskIdCounter = o._opacityMaskId;
+    });
+    syncBackgroundKeyFromCanvas();
+    updateLayerList();
+    updateStatusCount();
+    syncPanel(null);
+    if (canvas.getObjects().some(o => o._isOpacityMask) && typeof applyOpacityMasks === 'function') applyOpacityMasks();
+    canvas.requestRenderAll();
+    ignoreHistory = false;
+    if (typeof opts.after === 'function') opts.after();
+  });
 }

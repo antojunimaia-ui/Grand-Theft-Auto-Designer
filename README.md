@@ -177,22 +177,25 @@ All images lazy-loaded; thumbnails use `object-fit:cover` with Rockstar cards.
 
 ## 💾 Projects — How saving works
 
-```js
+Saves use **Fabric's native serialization**: `canvas.toJSON(GTA_SERIALIZED_PROPS)` snapshots
+every object (textos, personagens, palmeiras, opacitadores) **plus the background**, including all
+custom props — no hand-written save code. Restore uses `canvas.loadFromJSON(...)`, which is
+async-safe and preserves z-index out of the box.
+
+```json
 // serialized shape (localStorage: gta_vi_projects_v1)
 {
-  id: "lxyz...",
-  name: "My Cover",
-  background: "viceCity", // or transparent/black/dark
-  objects: [
-    { _isGTA:true, type:"logo", text:"VICE CITY", style:"colorful", fontSize:260, ... left, top, angle, scaleX, scaleY, opacity },
-    { _isChar:true, file:"Characters/...", left, top, scaleX, scaleY, angle, opacity },
-    { _isAsset:true, ... }
-  ],
-  thumbnail: "data:image/png;base64,..." // ~12% scale, null if tainted
+  "id": "lxyz...",
+  "name": "My Cover",
+  "background": "viceCity",            // or transparent/black/dark
+  "schema": "fabric-v1",
+  "fabric": { "version": "5.3.0", "objects": [ ... ], "backgroundImage": { ... } },
+  "thumbnail": "data:image/png;base64,..."
 }
 ```
 
-Order is preserved via **slot array** (`new Array(n)`) — async `fabric.Image.fromURL` results are stored at original index and only `canvas.add()`'ed sequentially + `moveTo(idx)`. Fixes the classic async z-index bug.
+Projetos legados (formato manual antigo) são **migrados automaticamente** para `fabric-v1`
+na primeira vez em que são carregados. Undo/Redo também usam o mesmo snapshot (agora inclui background).
 
 ---
 
