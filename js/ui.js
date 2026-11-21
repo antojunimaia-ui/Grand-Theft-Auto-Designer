@@ -68,8 +68,10 @@ function syncPanel(obj) {
       document.getElementById('opt-style-outline').classList.toggle('active', obj._gtaStyle === 'outline');
       document.getElementById('toggle-cover-art').classList.toggle('active', !!obj._gtaCoverArt);
       document.getElementById('toggle-palm-tree').classList.toggle('active', !!obj._gtaPalmTree);
-      document.getElementById('row-palm-tree').style.opacity = obj._gtaStyle === 'mono' ? '1' : '0.3';
-      document.getElementById('row-palm-tree').style.pointerEvents = obj._gtaStyle === 'mono' ? '' : 'none';
+      // Palmeira pode ser ligada/desligada no Colorful e no Mono (Outline não tem textura)
+      const palmToggleActive = obj._gtaStyle === 'mono' || obj._gtaStyle === 'colorful';
+      document.getElementById('row-palm-tree').style.opacity = palmToggleActive ? '1' : '0.3';
+      document.getElementById('row-palm-tree').style.pointerEvents = palmToggleActive ? '' : 'none';
       const px = obj._gtaPalmOffsetX ?? 0, py = obj._gtaPalmOffsetY ?? 0;
       document.getElementById('prop-palm-x').value = px;
       document.getElementById('prop-palm-x-val').textContent = px;
